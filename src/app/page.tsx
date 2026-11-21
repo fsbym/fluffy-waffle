@@ -17,7 +17,10 @@ type Restaurant = {
   accent: string;
 };
 
-const categories = ["全部", "套餐", "飲品", "甜點", "便當"];
+const categories = ["全部", "日料", "中餐", "西式", "甜点"];
+
+const mapsUrl = (item: Pick<Restaurant, "name" | "address">) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.address}`)}`;
 
 function SearchIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>;
@@ -48,37 +51,38 @@ export default function Home() {
     );
   }, [restaurants, category, query]);
 
-  const selected = restaurants.find((item) => item.id === selectedId) ?? filtered[0];
+  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
 
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">吃</div>
-          <div><strong>校園美食地圖</strong><span>台大主校區</span></div>
+          <div><strong>校园美食地图</strong><span>多大 St. George 主校区</span></div>
         </div>
         <div className="search-wrap">
           <span className="search-icon"><SearchIcon /></span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋店家或美食" aria-label="搜尋店家或美食" />
-          <button className="location-button" type="button" aria-label="使用目前位置"><MapPinIcon /></button>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店家或地址" aria-label="搜索店家或地址" />
+          <button className="location-button" type="button" aria-label="使用当前位置"><MapPinIcon /></button>
         </div>
-        <button className="campus-button" type="button"><span className="campus-dot" />主校區<span className="chevron">⌄</span></button>
+        <button className="campus-button" type="button"><span className="campus-dot" />St. George<span className="chevron">⌄</span></button>
       </header>
 
       <section className="content">
         <aside className="list-panel">
           <div className="list-heading">
-            <div><p>附近推薦</p><h1>尋找下一餐</h1></div>
+            <div><p>附近推荐</p><h1>寻找下一餐</h1></div>
             <span className="result-count">{filtered.length} 家店</span>
           </div>
-          <nav className="category-list" aria-label="美食分類">
+          <nav className="category-list" aria-label="美食分类">
             {categories.map((item) => (
               <button key={item} type="button" className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>
             ))}
           </nav>
+          <p className="data-note">折扣与饭团券信息为示例数据，请以店家实际公布为准。</p>
           <div className="restaurant-list">
             {filtered.map((item) => (
-              <article key={item.id} className={`restaurant-card ${selectedId === item.id ? "selected" : ""}`} onMouseEnter={() => setSelectedId(item.id)}>
+              <article key={item.id} className={`restaurant-card ${selected?.id === item.id ? "selected" : ""}`} onMouseEnter={() => setSelectedId(item.id)}>
                 <button className="card-main" type="button" onClick={() => setSelectedId(item.id)}>
                   <div className="food-thumb" style={{ background: item.color }}><span>{item.emoji}</span></div>
                   <div className="card-info">
@@ -88,24 +92,24 @@ export default function Home() {
                     {item.coupon && <span className="coupon-tag">{item.coupon}</span>}
                   </div>
                 </button>
-                <a className="map-link" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地圖查看 ${item.name}`}><MapPinIcon /></a>
+                <a className="map-link" href={mapsUrl(item)} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地图查看 ${item.name}`}><MapPinIcon /></a>
               </article>
             ))}
-            {filtered.length === 0 && <div className="empty-state">找不到符合的店家</div>}
+            {filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
         </aside>
 
-        <section className="map-panel" aria-label="美食地圖">
+        <section className="map-panel" aria-label="美食地图">
           <div className="map-grid" />
           <div className="park park-one" /><div className="park park-two" />
           <div className="road road-one" /><div className="road road-two" /><div className="road road-three" />
-          <span className="road-label label-one">新生南路</span><span className="road-label label-two">羅斯福路</span>
-          <span className="campus-label">國立臺灣大學</span>
+          <span className="road-label label-one">Bloor St W</span><span className="road-label label-two">College St</span>
+          <span className="campus-label">多伦多大学</span>
           {filtered.map((item, index) => (
             <button
               key={item.id}
               type="button"
-              className={`map-pin ${selectedId === item.id ? "active" : ""}`}
+              className={`map-pin ${selected?.id === item.id ? "active" : ""}`}
               style={{ left: `${24 + (index % 3) * 23}%`, top: `${28 + (index % 4) * 13}%`, "--pin": item.accent } as CSSProperties}
               onClick={() => setSelectedId(item.id)}
               aria-label={item.name}
@@ -118,7 +122,7 @@ export default function Home() {
                 <div className="preview-name"><h3>{selected.name}</h3><span>★ {selected.rating.toFixed(1)}</span></div>
                 <p>{selected.address}</p>{selected.discount && <strong>{selected.discount}</strong>}
               </div>
-              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.address)}`} target="_blank" rel="noopener noreferrer" aria-label="開啟 Google 地圖"><span>↗</span></a>
+              <a href={mapsUrl(selected)} target="_blank" rel="noopener noreferrer" aria-label="打开 Google 地图"><span>↗</span></a>
             </div>
           )}
         </section>
@@ -150,6 +154,7 @@ export default function Home() {
         .category-list { display: flex; gap: 8px; margin-bottom: 16px; }
         .category-list button { height: 34px; padding: 0 13px; border: 1px solid #e2e1d8; border-radius: 17px; background: #fff; color: #737a72; font-size: 12px; cursor: pointer; }
         .category-list button.active { border-color: #315f49; background: #315f49; color: #fff; }
+        .data-note { margin: -6px 0 12px; color: #a1a69f; font-size: 11px; }
         .restaurant-list { min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
         .restaurant-card { position: relative; flex: 0 0 112px; display: flex; align-items: stretch; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
         .restaurant-card.selected { border-color: #b9cbbd; box-shadow: 0 8px 24px rgba(47, 106, 79, .09); }
