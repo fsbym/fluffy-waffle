@@ -1,26 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-
-type Restaurant = {
-  id: number;
-  name: string;
-  category: string;
-  rating: number;
-  distance: string;
-  address: string;
-  price: string;
-  discount: string | null;
-  coupon: string | null;
-  emoji: string;
-  color: string;
-  accent: string;
-};
-
-const categories = ["全部", "日料", "中餐", "西式", "甜点"];
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import type { Deal, Restaurant } from "@/lib/types";
+import SubmitDealDialog from "./submit-deal";
 
 const mapsUrl = (item: Pick<Restaurant, "name" | "address">) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.address}`)}`;
+
+function dealLabel(deal: Deal) {
+  return deal.ends_on ? `${deal.title}（至 ${deal.ends_on.slice(5).replace("-", "/")}）` : deal.title;
+}
 
 function SearchIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" strokeWidth="1.8"/><path d="m16 16 4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>;
@@ -30,26 +19,48 @@ function MapPinIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-5.1 6-11a6 6 0 1 0-12 0c0 5.9 6 11 6 11Z" fill="none" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="10" r="2" fill="currentColor"/></svg>;
 }
 
+type LoadState = "loading" | "ready" | "error";
+
 export default function Home() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loadState, setLoadState] = useState<LoadState>("loading");
   const [category, setCategory] = useState("全部");
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(1);
+  const [dealsOnly, setDealsOnly] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [submitOpen, setSubmitOpen] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoadState("loading");
+    try {
+      const response = await fetch("/api/restaurants", { cache: "no-store" });
+      if (!response.ok) throw new Error(String(response.status));
+      setRestaurants(await response.json());
+      setLoadState("ready");
+    } catch {
+      setLoadState("error");
+    }
+  }, []);
 
   useEffect(() => {
-    fetch("/api/restaurants")
-      .then((response) => response.json())
-      .then((data: Restaurant[]) => setRestaurants(data))
-      .catch(() => setRestaurants([]));
-  }, []);
+    // 首次加载时从后端读取店家与折扣数据
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  const categories = useMemo(() => ["全部", ...new Set(restaurants.map((item) => item.category))], [restaurants]);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return restaurants.filter((item) =>
       (category === "全部" || item.category === category) &&
-      (!normalized || item.name.toLowerCase().includes(normalized) || item.address.toLowerCase().includes(normalized))
+      (!dealsOnly || item.deals.length > 0) &&
+      (!normalized ||
+        item.name.toLowerCase().includes(normalized) ||
+        item.address.toLowerCase().includes(normalized) ||
+        item.deals.some((deal) => deal.title.toLowerCase().includes(normalized)))
     );
-  }, [restaurants, category, query]);
+  }, [restaurants, category, query, dealsOnly]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0];
 
@@ -62,10 +73,9 @@ export default function Home() {
         </div>
         <div className="search-wrap">
           <span className="search-icon"><SearchIcon /></span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店家或地址" aria-label="搜索店家或地址" />
-          <button className="location-button" type="button" aria-label="使用当前位置"><MapPinIcon /></button>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店家、地址或折扣" aria-label="搜索店家、地址或折扣" />
         </div>
-        <button className="campus-button" type="button"><span className="campus-dot" />St. George<span className="chevron">⌄</span></button>
+        <button className="submit-button" type="button" onClick={() => setSubmitOpen(true)}>＋ 提交折扣</button>
       </header>
 
       <section className="content">
@@ -78,25 +88,39 @@ export default function Home() {
             {categories.map((item) => (
               <button key={item} type="button" className={category === item ? "active" : ""} onClick={() => setCategory(item)}>{item}</button>
             ))}
+            <button type="button" className={dealsOnly ? "active" : ""} onClick={() => setDealsOnly((value) => !value)} aria-pressed={dealsOnly}>有优惠</button>
           </nav>
-          <p className="data-note">折扣与饭团券信息为示例数据，请以店家实际公布为准。</p>
           <div className="restaurant-list">
-            {filtered.map((item) => (
+            {loadState === "loading" && <div className="empty-state">加载中…</div>}
+            {loadState === "error" && (
+              <div className="empty-state">加载失败 <button type="button" className="retry" onClick={() => void load()}>重试</button></div>
+            )}
+            {loadState === "ready" && filtered.map((item) => (
               <article key={item.id} className={`restaurant-card ${selected?.id === item.id ? "selected" : ""}`} onMouseEnter={() => setSelectedId(item.id)}>
                 <button className="card-main" type="button" onClick={() => setSelectedId(item.id)}>
                   <div className="food-thumb" style={{ background: item.color }}><span>{item.emoji}</span></div>
                   <div className="card-info">
-                    <div className="name-row"><h2>{item.name}</h2><span className="rating">★ {item.rating.toFixed(1)}</span></div>
-                    <p className="meta">{item.category} <span>·</span> {item.price} <span>·</span> {item.distance}</p>
-                    {item.discount && <span className="discount-tag">{item.discount}</span>}
-                    {item.coupon && <span className="coupon-tag">{item.coupon}</span>}
+                    <div className="name-row"><h2>{item.name}</h2>{item.rating !== null && <span className="rating">★ {item.rating.toFixed(1)}</span>}</div>
+                    <p className="meta">
+                      {[item.category, item.price_range, item.walk_minutes !== null ? `步行约 ${item.walk_minutes} 分钟` : null]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                    <div className="tags">
+                      {item.deals.map((deal) => (
+                        <span key={deal.id} className={deal.kind === "coupon" ? "coupon-tag" : "discount-tag"} title={deal.source ? `来源：${deal.source}，${deal.last_verified_on} 确认` : undefined}>
+                          {dealLabel(deal)}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </button>
                 <a className="map-link" href={mapsUrl(item)} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地图查看 ${item.name}`}><MapPinIcon /></a>
               </article>
             ))}
-            {filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
+            {loadState === "ready" && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
+          <p className="data-note">优惠信息由管理员和同学维护，以店家实际公布为准。</p>
         </aside>
 
         <section className="map-panel" aria-label="美食地图">
@@ -110,7 +134,7 @@ export default function Home() {
               key={item.id}
               type="button"
               className={`map-pin ${selected?.id === item.id ? "active" : ""}`}
-              style={{ left: `${24 + (index % 3) * 23}%`, top: `${28 + (index % 4) * 13}%`, "--pin": item.accent } as CSSProperties}
+              style={{ left: `${18 + (index % 4) * 19}%`, top: `${26 + (Math.floor(index / 4) % 3) * 15 + (index % 2) * 6}%`, "--pin": item.accent } as CSSProperties}
               onClick={() => setSelectedId(item.id)}
               aria-label={item.name}
             ><span>{item.emoji}</span></button>
@@ -119,14 +143,16 @@ export default function Home() {
             <div className="map-preview">
               <div className="preview-thumb" style={{ background: selected.color }}><span>{selected.emoji}</span></div>
               <div className="preview-info">
-                <div className="preview-name"><h3>{selected.name}</h3><span>★ {selected.rating.toFixed(1)}</span></div>
-                <p>{selected.address}</p>{selected.discount && <strong>{selected.discount}</strong>}
+                <div className="preview-name"><h3>{selected.name}</h3>{selected.rating !== null && <span>★ {selected.rating.toFixed(1)}</span>}</div>
+                <p>{selected.address}</p>{selected.deals[0] && <strong>{dealLabel(selected.deals[0])}</strong>}
               </div>
               <a href={mapsUrl(selected)} target="_blank" rel="noopener noreferrer" aria-label="打开 Google 地图"><span>↗</span></a>
             </div>
           )}
         </section>
       </section>
+
+      {submitOpen && <SubmitDealDialog restaurants={restaurants} defaultRestaurantId={selected?.id ?? null} onClose={() => setSubmitOpen(false)} />}
 
       <style jsx>{`
         .app-shell { height: 100vh; min-height: 680px; display: flex; flex-direction: column; overflow: hidden; }
@@ -137,26 +163,25 @@ export default function Home() {
         .brand strong { font-size: 17px; letter-spacing: 1px; }
         .brand span { margin-top: 2px; color: #899087; font-size: 12px; }
         .search-wrap { height: 48px; display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 15px; border: 1px solid #dfdfd7; border-radius: 14px; background: #fafaf7; }
-        .search-icon { width: 19px; height: 19px; color: #7d867d; }
+        .search-icon { width: 19px; height: 19px; flex: 0 0 19px; color: #7d867d; }
+        .search-wrap { padding-right: 15px; }
         .search-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #26352d; font-size: 14px; }
         .search-wrap input::placeholder { color: #a1a69f; }
-        .location-button { width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 10px; background: #e8efe8; color: #416b54; cursor: pointer; }
-        .location-button svg { width: 20px; }
-        .campus-button { justify-self: end; height: 44px; display: flex; align-items: center; gap: 9px; padding: 0 15px; border: 1px solid #e3e1d8; border-radius: 12px; background: #fff; color: #596259; font-size: 13px; cursor: pointer; }
-        .campus-dot { width: 8px; height: 8px; border-radius: 50%; background: #67a27e; box-shadow: 0 0 0 4px #edf4ed; }
-        .chevron { margin-left: 4px; color: #9da49b; }
+        .submit-button { justify-self: end; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .submit-button:hover { background: #284f3c; }
         .content { min-height: 0; flex: 1; display: grid; grid-template-columns: 430px minmax(0, 1fr); }
         .list-panel { min-height: 0; display: flex; flex-direction: column; padding: 28px 24px 20px 36px; background: #fbfaf6; border-right: 1px solid #e5e3da; }
         .list-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
         .list-heading p { margin: 0 0 4px; color: #8b9288; font-size: 12px; }
         .list-heading h1 { margin: 0; font-size: 23px; line-height: 1.2; }
         .result-count { margin-bottom: 2px; color: #8d948a; font-size: 12px; }
-        .category-list { display: flex; gap: 8px; margin-bottom: 16px; }
+        .category-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
         .category-list button { height: 34px; padding: 0 13px; border: 1px solid #e2e1d8; border-radius: 17px; background: #fff; color: #737a72; font-size: 12px; cursor: pointer; }
         .category-list button.active { border-color: #315f49; background: #315f49; color: #fff; }
-        .data-note { margin: -6px 0 12px; color: #a1a69f; font-size: 11px; }
+        .data-note { margin: 10px 0 0; color: #a1a69f; font-size: 11px; }
+        .retry { margin-left: 8px; border: 0; background: none; color: #315f49; text-decoration: underline; cursor: pointer; }
         .restaurant-list { min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
-        .restaurant-card { position: relative; flex: 0 0 112px; display: flex; align-items: stretch; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
+        .restaurant-card { position: relative; flex: 0 0 auto; min-height: 112px; display: flex; align-items: stretch; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
         .restaurant-card.selected { border-color: #b9cbbd; box-shadow: 0 8px 24px rgba(47, 106, 79, .09); }
         .card-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 13px; padding: 10px 42px 10px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
         .food-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; overflow: hidden; border-radius: 10px; }
@@ -167,7 +192,8 @@ export default function Home() {
         .rating { color: #de7a43; font-size: 11px; font-weight: 700; white-space: nowrap; }
         .meta { margin: 6px 0 8px; color: #969b94; font-size: 11px; }
         .meta span { margin: 0 3px; color: #c7c9c3; }
-        .discount-tag, .coupon-tag { display: inline-flex; height: 21px; align-items: center; margin-right: 5px; padding: 0 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; font-weight: 700; }
+        .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .discount-tag, .coupon-tag { display: inline-flex; min-height: 21px; align-items: center; padding: 0 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; font-weight: 700; }
         .coupon-tag { background: #edf3e9; color: #557251; }
         .map-link { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #e7e7df; border-radius: 8px; color: #738076; }
         .map-link svg { width: 16px; }
@@ -200,16 +226,14 @@ export default function Home() {
         .map-preview > a { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 50%; background: #315f49; color: #fff; text-decoration: none; }
         @media (max-width: 900px) {
           .topbar { grid-template-columns: 210px minmax(220px,1fr) auto; padding: 0 20px; }
-          .campus-button { width: 44px; overflow: hidden; padding: 0 17px; color: transparent; }
-          .campus-dot { flex: 0 0 8px; } .chevron { display: none; }
           .content { grid-template-columns: 380px minmax(0,1fr); }
           .list-panel { padding-left: 20px; }
         }
         @media (max-width: 680px) {
           .app-shell { height: auto; min-height: 100vh; overflow: visible; }
-          .topbar { height: auto; min-height: 72px; grid-template-columns: 1fr 44px; gap: 10px; padding: 12px 14px; }
+          .topbar { height: auto; min-height: 72px; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 14px; }
           .brand { grid-column: 1; } .brand-mark { width: 42px; height: 42px; }
-          .campus-button { grid-column: 2; grid-row: 1; }
+          .submit-button { grid-column: 2; grid-row: 1; padding: 0 12px; }
           .search-wrap { grid-column: 1/-1; grid-row: 2; }
           .content { display: flex; flex-direction: column-reverse; }
           .map-panel { height: 340px; flex: 0 0 340px; }
