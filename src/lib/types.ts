@@ -20,6 +20,8 @@ export type Restaurant = {
   price_range: string | null;
   walk_minutes: number | null;
   rating: number | null;
+  lat: number | null;
+  lng: number | null;
   emoji: string;
   color: string;
   accent: string;

@@ -108,7 +108,7 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
         {kind === "add_restaurant" && (
           <>
             <label>店名<input name="name" required maxLength={80} placeholder="例如：Banh Mi Boys" /></label>
-            <label>地址<input name="address" required maxLength={160} placeholder="例如：392 Queen St W, Toronto, ON" /></label>
+            <label>地址（会自动在地图上定位）<input name="address" required maxLength={160} placeholder="例如：392 Queen St W, Toronto, ON" /></label>
             <div className="row">
               <label>分类
                 <select name="category" defaultValue={CATEGORIES[0]}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>

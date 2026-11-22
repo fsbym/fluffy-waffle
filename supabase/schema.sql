@@ -40,6 +40,21 @@ create table if not exists public.deals (
 );
 create index if not exists deals_restaurant_id_idx on public.deals (restaurant_id);
 
+-- 店家坐标（WGS84），用于地图和计算步行时间
+alter table public.restaurants add column if not exists lat double precision check (lat is null or lat between -90 and 90);
+alter table public.restaurants add column if not exists lng double precision check (lng is null or lng between -180 and 180);
+
+-- 从校园中心（King's College Circle）步行大约要几分钟：直线距离 × 1.3（绕路）÷ 80 米/分钟
+create or replace function public.walk_minutes_from_campus(p_lat double precision, p_lng double precision) returns int
+language sql immutable as $$
+  select case when p_lat is null or p_lng is null then null else greatest(1, round(
+    6371000 * 2 * asin(sqrt(
+      power(sin(radians(p_lat - 43.661753) / 2), 2) +
+      cos(radians(43.661753)) * cos(radians(p_lat)) * power(sin(radians(p_lng - (-79.395178)) / 2), 2)
+    )) * 1.3 / 80
+  ))::int end
+$$;
+
 create table if not exists public.proposals (
   id            bigint generated always as identity primary key,
   kind          text not null check (kind in ('add_restaurant', 'add_deal', 'update_deal', 'remove_deal')),
@@ -160,9 +175,11 @@ language plpgsql as $$
 begin
   case p.kind
   when 'add_restaurant' then
-    insert into public.restaurants (name, category, address, price_range, emoji)
+    insert into public.restaurants (name, category, address, price_range, emoji, lat, lng, walk_minutes)
     values (p.payload->>'name', p.payload->>'category', p.payload->>'address',
-            nullif(p.payload->>'price_range', ''), coalesce(nullif(p.payload->>'emoji', ''), '🍽️'));
+            nullif(p.payload->>'price_range', ''), coalesce(nullif(p.payload->>'emoji', ''), '🍽️'),
+            (p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision,
+            public.walk_minutes_from_campus((p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision));
   when 'add_deal' then
     insert into public.deals (restaurant_id, kind, title, source, ends_on)
     values (p.restaurant_id, p.payload->>'deal_kind', p.payload->>'title',

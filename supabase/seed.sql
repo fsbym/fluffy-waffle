@@ -4,15 +4,19 @@ select set_config('app.actor', 'seed', false);
 -- 初始店家数据（多大 St. George 校区周边）。
 -- 折扣与饭团券为示例，请在 /admin 后台改成真实信息。
 with r as (
-  insert into public.restaurants (name, category, address, price_range, walk_minutes, rating, emoji, color, accent) values
-    ('Kinton Ramen',       '日料', '51 Baldwin St, Toronto, ON',    '$15-22', 10, 4.5, '🍜', '#f1d1b1', '#de7a44'),
-    ('Sushi on Bloor',     '日料', '515 Bloor St W, Toronto, ON',   '$15-30',  8, 4.3, '🍣', '#dec68f', '#c89c54'),
-    ('Mother''s Dumplings','中餐', '421 Spadina Ave, Toronto, ON',  '$12-20', 12, 4.4, '🥟', '#e7c3a8', '#b77850'),
-    ('Rol San',            '中餐', '323 Spadina Ave, Toronto, ON',  '$15-25', 15, 4.2, '🥢', '#d8e2bd', '#98ad6d'),
-    ('Sneaky Dee''s',      '西式', '431 College St, Toronto, ON',   '$14-24', 10, 4.1, '🌮', '#c9dcae', '#7e9c62'),
-    ('Seven Lives Tacos',  '西式', '72 Kensington Ave, Toronto, ON','$8-18',  14, 4.7, '🌯', '#f1d1b1', '#de7a44'),
-    ('Future Bistro',      '甜点', '483 Bloor St W, Toronto, ON',   '$8-18',   8, 4.0, '🍰', '#dec68f', '#c89c54'),
-    ('Pancho''s Bakery',   '甜点', '214 Augusta Ave, Toronto, ON',  '$4-12',  14, 4.6, '🥐', '#d8e2bd', '#98ad6d')
+  insert into public.restaurants (name, category, address, price_range, lat, lng, walk_minutes, rating, emoji, color, accent)
+  select name, category, address, price_range, lat, lng, public.walk_minutes_from_campus(lat, lng), rating, emoji, color, accent
+  from (values
+    -- 坐标来自 OpenStreetMap（Nominatim）
+    ('Kinton Ramen',       '日料', '668 Bloor St W, Toronto, ON',   '$15-22', 43.664153, -79.416314, 4.5, '🍜', '#f1d1b1', '#de7a44'),
+    ('Sushi on Bloor',     '日料', '525 Bloor St W, Toronto, ON',   '$15-30', 43.665424, -79.409178, 4.3, '🍣', '#dec68f', '#c89c54'),
+    ('Mother''s Dumplings','中餐', '421 Spadina Ave, Toronto, ON',  '$12-20', 43.657120, -79.399434, 4.4, '🥟', '#e7c3a8', '#b77850'),
+    ('Rol San',            '中餐', '388 Spadina Ave, Toronto, ON',  '$15-25', 43.655441, -79.399342, 4.2, '🥢', '#d8e2bd', '#98ad6d'),
+    ('Sneaky Dee''s',      '西式', '431 College St, Toronto, ON',   '$14-24', 43.656246, -79.407432, 4.1, '🌮', '#c9dcae', '#7e9c62'),
+    ('Seven Lives Tacos',  '西式', 'Kensington Ave, Toronto, ON',   '$8-18',  43.654547, -79.400772, 4.7, '🌯', '#f1d1b1', '#de7a44'),
+    ('Future Bistro',      '甜点', '483 Bloor St W, Toronto, ON',   '$8-18',  43.665750, -79.407622, 4.0, '🍰', '#dec68f', '#c89c54'),
+    ('Pancho''s Bakery',   '甜点', '214 Augusta Ave, Toronto, ON',  '$4-12',  43.654730, -79.402350, 4.6, '🥐', '#d8e2bd', '#98ad6d')
+  ) as v(name, category, address, price_range, lat, lng, rating, emoji, color, accent)
   returning id, name
 )
 insert into public.deals (restaurant_id, kind, title, source)

@@ -3,7 +3,7 @@ import { db, torontoToday } from "./supabase";
 import type { Deal, Restaurant } from "./types";
 import { BadRequest, date, int, kind, num, text, bool } from "./validate";
 
-const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, emoji, color, accent";
+const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, lat, lng, emoji, color, accent";
 const DEAL_COLUMNS = "id, restaurant_id, kind, title, source, starts_on, ends_on, last_verified_on, is_active";
 
 function isCurrent(deal: Deal, today: string): boolean {
@@ -45,6 +45,8 @@ export function parseRestaurant(body: Body, partial: boolean) {
     price_range: text(body, "price_range", { max: 30 }),
     walk_minutes: int(body, "walk_minutes", { min: 0, max: 120 }),
     rating: num(body, "rating", { min: 0, max: 5 }),
+    lat: num(body, "lat", { min: -90, max: 90 }),
+    lng: num(body, "lng", { min: -180, max: 180 }),
     emoji: text(body, "emoji", { max: 8 }),
     color: text(body, "color", { max: 9 }),
     accent: text(body, "accent", { max: 9 }),

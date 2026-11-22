@@ -196,6 +196,8 @@ function RestaurantFields({ r }: { r?: Restaurant }) {
       <label>价位<input name="price_range" placeholder="$10-20" defaultValue={r?.price_range ?? ""} /></label>
       <label>步行分钟<input name="walk_minutes" type="number" min={0} max={120} defaultValue={r?.walk_minutes ?? ""} /></label>
       <label>评分<input name="rating" type="number" min={0} max={5} step={0.1} defaultValue={r?.rating ?? ""} /></label>
+      <label>纬度 lat<input name="lat" type="number" step="any" min={-90} max={90} defaultValue={r?.lat ?? ""} placeholder="43.66" /></label>
+      <label>经度 lng<input name="lng" type="number" step="any" min={-180} max={180} defaultValue={r?.lng ?? ""} placeholder="-79.40" /></label>
       <label>图标<input name="emoji" defaultValue={r?.emoji ?? "🍽️"} /></label>
       <label>底色<input name="color" type="color" defaultValue={r?.color ?? "#e7dfcf"} /></label>
       <label>强调色<input name="accent" type="color" defaultValue={r?.accent ?? "#df7a44"} /></label>

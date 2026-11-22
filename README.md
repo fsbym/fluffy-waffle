@@ -23,9 +23,14 @@
 
 - **前端**（Next.js）：`src/app/page.tsx` 地图与列表，`proposal-dialog.tsx` 提交，`proposals-panel.tsx` 投票，`ledger/page.tsx` 公开账本，`admin/page.tsx` 管理后台
 - **后端**：`src/app/api/*`，用 Supabase secret key 访问数据库，用 Claude API 检查照片（`src/lib/evidence.ts`）
+- **地图**：OpenStreetMap + Leaflet（`src/app/map-view.tsx`），免费、无需 API key。新店家的地址由后端通过 OpenStreetMap 的 Nominatim 自动转成坐标（`src/lib/geocode.ts`），步行时间按到 King's College Circle 的距离估算
 - **数据库**：Supabase（免费版 PostgreSQL + Auth + Storage），结构见 `supabase/schema.sql`
   - 所有表开启 RLS 且没有公开策略，数据库函数也收回了公开执行权限，浏览器无法绕过后端
   - 证据照片放在私有的 `evidence` 存储桶里，通过后端生成的临时链接查看
+
+## 数据库迁移
+
+已经建好的数据库升级时，先运行最新的 `supabase/schema.sql`（可重复运行），再运行 `supabase/migrations/` 里尚未运行过的文件。
 
 ## 第一次设置
 
