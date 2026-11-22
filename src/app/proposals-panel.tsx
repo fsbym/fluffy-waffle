@@ -68,7 +68,7 @@ export default function ProposalsPanel({ onClose, onChanged, onNeedLogin }: Prop
   );
 }
 
-function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposal; onVoted: () => void; onNeedLogin: () => void }) {
+export function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposal; onVoted: () => void; onNeedLogin: () => void }) {
   const { email } = useAuth();
   const [voting, setVoting] = useState<Stance | null>(null);
   const progress = Math.min(100, (p.confirms / CONFIRM_THRESHOLD) * 100);

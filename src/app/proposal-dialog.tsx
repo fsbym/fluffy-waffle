@@ -9,6 +9,9 @@ import PhotoInput from "./photo-input";
 type Props = {
   restaurants: Restaurant[];
   restaurantId: number | null;
+  /** 打开时预先选好的操作和优惠（从店家详情里点「变了 / 取消了」时使用） */
+  initialKind?: ProposalKind;
+  initialDealId?: number | null;
   onClose: () => void;
   onSubmitted: () => void;
 };
@@ -20,13 +23,13 @@ const ACTIONS: { kind: ProposalKind; label: string }[] = [
   { kind: "add_restaurant", label: "新店家" },
 ];
 
-export default function ProposalDialog({ restaurants, restaurantId, onClose, onSubmitted }: Props) {
+export default function ProposalDialog({ restaurants, restaurantId, initialKind = "add_deal", initialDealId = null, onClose, onSubmitted }: Props) {
   const { authFetch } = useAuth();
-  const [kind, setKind] = useState<ProposalKind>("add_deal");
+  const [kind, setKind] = useState<ProposalKind>(initialKind);
   const [rid, setRid] = useState(restaurantId ?? restaurants[0]?.id ?? 0);
   const restaurant = restaurants.find((r) => r.id === rid);
   const deals = restaurant?.deals ?? [];
-  const [dealId, setDealId] = useState<number | null>(deals[0]?.id ?? null);
+  const [dealId, setDealId] = useState<number | null>(initialDealId ?? deals[0]?.id ?? null);
   const deal = deals.find((d) => d.id === dealId) ?? deals[0];
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
