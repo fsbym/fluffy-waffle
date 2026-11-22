@@ -277,6 +277,11 @@ begin
     execute 'revoke execute on all functions in schema public from anon, authenticated';
   end if;
   if exists (select 1 from pg_roles where rolname = 'service_role') then
+    -- 新版 Supabase 不再自动给新表授权，后端（secret key = service_role）需要显式授权；
+    -- anon / authenticated（浏览器）不授予任何表权限。
+    execute 'grant usage on schema public to service_role';
+    execute 'grant select, insert, update, delete on all tables in schema public to service_role';
+    execute 'grant usage, select on all sequences in schema public to service_role';
     execute 'grant execute on all functions in schema public to service_role';
   end if;
 end $$;
