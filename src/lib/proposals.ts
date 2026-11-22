@@ -1,4 +1,5 @@
 import "server-only";
+import { geocodeAddress } from "./geocode";
 import { db } from "./supabase";
 import type { Deal, Proposal, ProposalKind, Restaurant, Stance, Vote } from "./types";
 import { BadRequest, date, int, text } from "./validate";
@@ -46,9 +47,10 @@ export async function parseProposal(body: Body): Promise<ProposalInput> {
       const address = text(body, "address", { max: 160, required: true })!;
       const category = text(body, "category", { max: 20, required: true })!;
       const price_range = text(body, "price_range", { max: 30 });
+      const { lat, lng } = await geocodeAddress(name, address);
       return {
         kind: "add_restaurant", restaurant_id: null, deal_id: null,
-        payload: { name, address, category, price_range },
+        payload: { name, address, category, price_range, lat: String(lat), lng: String(lng) },
         claim: `新店家：${name}（${category}，${address}）`,
       };
     }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Deal, Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import LoginDialog from "./login-dialog";
 import ProposalDialog from "./proposal-dialog";
+import MapView from "./map-view";
 import ProposalsPanel from "./proposals-panel";
 
 const mapsUrl = (item: Pick<Restaurant, "name" | "address">) =>
@@ -145,7 +146,7 @@ export default function Home() {
                   <div className="card-info">
                     <div className="name-row"><h2>{item.name}</h2>{item.rating !== null && <span className="rating">★ {item.rating.toFixed(1)}</span>}</div>
                     <p className="meta">
-                      {[item.category, item.price_range, item.walk_minutes !== null ? `步行约 ${item.walk_minutes} 分钟` : null]
+                      {[item.category, item.price_range, item.walk_minutes !== null ? `距校园步行约 ${item.walk_minutes} 分钟` : null]
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
@@ -168,21 +169,7 @@ export default function Home() {
         </aside>
 
         <section className="map-panel" aria-label="美食地图">
-          <div className="map-grid" />
-          <div className="park park-one" /><div className="park park-two" />
-          <div className="road road-one" /><div className="road road-two" /><div className="road road-three" />
-          <span className="road-label label-one">Bloor St W</span><span className="road-label label-two">College St</span>
-          <span className="campus-label">多伦多大学</span>
-          {filtered.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`map-pin ${selected?.id === item.id ? "active" : ""}`}
-              style={{ left: `${18 + (index % 4) * 19}%`, top: `${26 + (Math.floor(index / 4) % 3) * 15 + (index % 2) * 6}%`, "--pin": item.accent } as CSSProperties}
-              onClick={() => setSelectedId(item.id)}
-              aria-label={item.name}
-            ><span>{item.emoji}</span></button>
-          ))}
+          <MapView restaurants={filtered} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
           {selected && (
             <div className="map-preview">
               <div className="preview-thumb" style={{ background: selected.color }}><span>{selected.emoji}</span></div>
@@ -256,22 +243,7 @@ export default function Home() {
         .map-link svg { width: 16px; }
         .empty-state { height: 120px; display: grid; place-items: center; color: #969b94; font-size: 13px; }
         .map-panel { position: relative; overflow: hidden; background: #edf0e7; }
-        .map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(129,145,128,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(129,145,128,.09) 1px, transparent 1px); background-size: 42px 42px; transform: rotate(-8deg) scale(1.15); }
-        .park { position: absolute; border-radius: 50%; background: #cadbbd; opacity: .75; }
-        .park-one { width: 260px; height: 150px; left: 4%; top: 12%; transform: rotate(20deg); }
-        .park-two { width: 180px; height: 220px; right: 8%; bottom: 6%; transform: rotate(-12deg); }
-        .road { position: absolute; height: 18px; border: 1px solid #dde1d8; background: #fafbf7; box-shadow: 0 0 0 4px rgba(216,220,209,.35); }
-        .road-one { width: 130%; left: -15%; top: 47%; transform: rotate(-8deg); }
-        .road-two { width: 120%; height: 14px; left: -10%; top: 65%; transform: rotate(26deg); }
-        .road-three { width: 15px; height: 120%; left: 54%; top: -10%; transform: rotate(10deg); }
-        .road-label { position: absolute; z-index: 2; color: #a2a99e; font-size: 10px; letter-spacing: 2px; }
-        .label-one { left: 10%; top: 44%; transform: rotate(-8deg); }
-        .label-two { right: 12%; top: 68%; transform: rotate(26deg); }
-        .campus-label { position: absolute; left: 37%; top: 19%; z-index: 2; color: #8b9c86; font-size: 12px; letter-spacing: 3px; }
-        .map-pin { --pin: #df7a44; position: absolute; z-index: 4; width: 44px; height: 44px; display: grid; place-items: center; border: 3px solid #fff; border-radius: 50% 50% 50% 8px; background: var(--pin); box-shadow: 0 7px 18px rgba(69,79,67,.18); color: #fff; transform: rotate(-45deg); cursor: pointer; transition: transform .18s, scale .18s; }
-        .map-pin span { font-size: 20px; transform: rotate(45deg); }
-        .map-pin.active { z-index: 5; scale: 1.12; transform: rotate(-45deg) translate(2px,-2px); box-shadow: 0 10px 24px rgba(69,79,67,.25); }
-        .map-preview { position: absolute; z-index: 6; right: 26px; bottom: 24px; width: 330px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid rgba(58,78,64,.08); border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(72,82,68,.16); backdrop-filter: blur(8px); }
+        .map-preview { position: absolute; z-index: 600; right: 26px; bottom: 24px; width: 330px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid rgba(58,78,64,.08); border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(72,82,68,.16); backdrop-filter: blur(8px); }
         .preview-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; border-radius: 10px; }
         .preview-thumb span { font-size: 44px; }
         .preview-info { min-width: 0; flex: 1; }
@@ -295,10 +267,10 @@ export default function Home() {
           .top-actions .submit-button, .top-actions .ghost-button { height: 38px; padding: 0 10px; font-size: 12px; }
           .search-wrap { grid-column: 1/-1; grid-row: 2; }
           .content { display: flex; flex-direction: column-reverse; }
-          .map-panel { height: 340px; flex: 0 0 340px; }
+          .map-panel { height: 420px; flex: 0 0 420px; }
           .list-panel { min-height: 430px; padding: 20px 14px; }
           .restaurant-list { max-height: none; overflow: visible; }
-          .map-preview { right: 12px; bottom: 12px; width: calc(100% - 24px); height: 84px; }
+          .map-preview { right: 12px; bottom: 24px; width: calc(100% - 24px); height: 84px; }
           .preview-thumb { width: 64px; height: 64px; flex-basis: 64px; } .preview-thumb span { font-size: 32px; }
         }
       `}</style>
