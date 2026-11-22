@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Deal, ProposalKind, Restaurant } from "@/lib/types";
+import { formatPrice, type Deal, type ProposalKind, type Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import LoginDialog from "./login-dialog";
 import ProposalDialog from "./proposal-dialog";
@@ -35,7 +35,7 @@ export default function Home() {
   const [dealsOnly, setDealsOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dialog, setDialog] = useState<null | "login" | "propose" | "proposals">(null);
-  const [proposeFor, setProposeFor] = useState<{ restaurantId: number | null; kind?: ProposalKind; dealId?: number }>({ restaurantId: null });
+  const [proposeFor, setProposeFor] = useState<{ restaurantId: number | null; kind?: ProposalKind; dealId?: number; dishId?: number }>({ restaurantId: null });
   const [detailId, setDetailId] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
@@ -94,9 +94,9 @@ export default function Home() {
   }, [loadPending]);
 
   /** 需要登录的操作：没登录先弹登录框 */
-  const propose = (restaurantId: number | null, kind?: ProposalKind, dealId?: number) => {
+  const propose = (restaurantId: number | null, kind?: ProposalKind, target: { dealId?: number; dishId?: number } = {}) => {
     if (!email) { setDialog("login"); return; }
-    setProposeFor({ restaurantId, kind, dealId });
+    setProposeFor({ restaurantId, kind, ...target });
     setDialog("propose");
   };
 
@@ -116,6 +116,8 @@ export default function Home() {
       (!normalized ||
         item.name.toLowerCase().includes(normalized) ||
         item.address.toLowerCase().includes(normalized) ||
+        item.category.toLowerCase().includes(normalized) ||
+        item.dishes.some((dish) => dish.name.toLowerCase().includes(normalized)) ||
         item.deals.some((deal) => deal.title.toLowerCase().includes(normalized)))
     );
   }, [restaurants, category, query, dealsOnly]);
@@ -127,17 +129,17 @@ export default function Home() {
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">吃</div>
-          <div><strong>校园美食地图</strong><span>多大 St. George 主校区</span></div>
+          <div><strong>UTSG 简餐食堂指北</strong><span>多大 St. George 校区</span></div>
         </div>
         <div className="search-wrap">
           <span className="search-icon"><SearchIcon /></span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店家、地址或折扣" aria-label="搜索店家、地址或折扣" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店名、菜名、分类或优惠" aria-label="搜索店名、菜名、分类或优惠" />
         </div>
         <div className="top-actions">
           <button className="ghost-button" type="button" onClick={() => setDialog("proposals")}>
             待确认{pendingCount ? <span className="badge">{pendingCount}</span> : null}
           </button>
-          <button className="submit-button" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 提交优惠</button>
+          <button className="submit-button" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 推荐</button>
           {email ? (
             <button className="ghost-button account" type="button" onClick={() => void signOut()} title={`已登录：${email}（点击退出）`}>退出</button>
           ) : (
@@ -174,6 +176,14 @@ export default function Home() {
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
+                    {item.dishes.length > 0 && (
+                      <p className="dishes">
+                        {item.dishes.slice(0, 3).map((dish) => (
+                          <span key={dish.id}>{dish.name} <b>{formatPrice(dish.price)}</b></span>
+                        ))}
+                        {item.dishes.length > 3 && <span className="more">等 {item.dishes.length} 道</span>}
+                      </p>
+                    )}
                     <div className="tags">
                       {item.deals.map((deal) => (
                         <span key={deal.id} className={deal.kind === "coupon" ? "coupon-tag" : "discount-tag"} title={deal.source ? `来源：${deal.source}，${deal.last_verified_on} 确认` : undefined}>
@@ -190,13 +200,13 @@ export default function Home() {
             {loadState === "ready" && restaurants.length === 0 && (
               <div className="empty-state first">
                 <p>地图上还没有店家。</p>
-                <p>知道附近哪家好吃、有什么优惠？附张照片，添加第一家吧。</p>
+                <p>知道校园附近哪家简餐、食堂好吃？附张照片，添加第一家吧。</p>
                 <button type="button" className="submit-button" onClick={() => propose(null, "add_restaurant")}>＋ 添加第一家店</button>
               </div>
             )}
             {loadState === "ready" && restaurants.length > 0 && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
-          <p className="data-note">优惠由同学们共同维护：附照片提交即生效，取消一条优惠需要 2 人确认。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
+          <p className="data-note">店家、推荐菜和优惠都由同学们共同维护，附照片提交即生效；删除一道菜或一条优惠需要 2 人确认。价格均为税前。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
         </aside>
 
         <section className="map-panel" aria-label="美食地图">
@@ -206,7 +216,10 @@ export default function Home() {
               <div className="preview-thumb" style={{ background: selected.color }}><span>{selected.emoji}</span></div>
               <div className="preview-info">
                 <div className="preview-name"><h3>{selected.name}</h3>{selected.rating !== null && <span>★ {selected.rating.toFixed(1)}</span>}</div>
-                <p>{selected.address}</p>{selected.deals[0] && <strong>{dealLabel(selected.deals[0])}</strong>}
+                <p>{selected.address}</p>
+                {selected.dishes[0] ? (
+                  <strong className="dish-chip">{selected.dishes[0].name} {formatPrice(selected.dishes[0].price)}</strong>
+                ) : selected.deals[0] ? <strong>{dealLabel(selected.deals[0])}</strong> : null}
               </div>
               <span className="preview-more" aria-hidden="true">›</span>
             </div>
@@ -219,7 +232,7 @@ export default function Home() {
           restaurant={restaurants.find((r) => r.id === detailId)!}
           reloadKey={reloadKey}
           onClose={() => openDetail(null)}
-          onPropose={(kind, dealId) => propose(detailId, kind, dealId)}
+          onPropose={(kind, target) => propose(detailId, kind, target)}
           onChanged={refresh}
           onNeedLogin={() => setDialog("login")}
         />
@@ -231,6 +244,7 @@ export default function Home() {
           restaurantId={proposeFor.restaurantId}
           initialKind={proposeFor.kind}
           initialDealId={proposeFor.dealId}
+          initialDishId={proposeFor.dishId}
           onClose={() => setDialog(null)}
           onSubmitted={refresh}
         />
@@ -288,6 +302,10 @@ export default function Home() {
         .meta { margin: 6px 0 8px; color: #969b94; font-size: 11px; }
         .meta span { margin: 0 3px; color: #c7c9c3; }
         .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .dishes { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 8px; color: #4a544c; font-size: 12px; }
+        .dishes b { color: #c86a3d; font-weight: 700; }
+        .dishes .more { color: #a1a69f; }
+        .preview-info strong.dish-chip { background: #f3efe6; color: #4a544c; }
         .discount-tag, .coupon-tag { display: inline-flex; min-height: 21px; align-items: center; padding: 0 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; font-weight: 700; }
         .coupon-tag { background: #edf3e9; color: #557251; }
         .map-link { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #e7e7df; border-radius: 8px; color: #738076; }

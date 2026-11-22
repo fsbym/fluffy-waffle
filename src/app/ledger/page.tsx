@@ -7,7 +7,7 @@ import type { LedgerEntry } from "@/lib/types";
 
 type Parsed = { table: string; op: string; actor: string; at: string; row: Record<string, unknown> };
 
-const TABLE: Record<string, string> = { restaurants: "店家", deals: "优惠", proposals: "提案", votes: "投票" };
+const TABLE: Record<string, string> = { restaurants: "店家", dishes: "推荐菜", deals: "优惠", proposals: "提案", votes: "投票" };
 const OP: Record<string, string> = { insert: "新增", update: "更新", delete: "删除" };
 const STATUS: Record<string, string> = { pending: "待确认", applied: "已生效", rejected: "已驳回", expired: "已过期", cancelled: "已撤销" };
 
@@ -23,6 +23,7 @@ function describe(p: Parsed): string {
   const r = p.row;
   switch (p.table) {
     case "restaurants": return `${r.name}（${r.address}）`;
+    case "dishes": return `${r.name} $${Number(r.price).toFixed(2)}（税前）${r.is_active === false ? "（已下架）" : ""}`;
     case "deals": return `${r.title}${r.is_active === false ? "（已下架）" : ""}`;
     case "proposals": return `#${r.id} ${r.claim} → ${STATUS[String(r.status)] ?? r.status}`;
     case "votes": return `提案 #${r.proposal_id} ${r.stance === "confirm" ? "确认" : "反对"}，证据 ${String(r.evidence_sha256).slice(0, 10)}…`;
@@ -67,7 +68,7 @@ export default function LedgerPage() {
   return (
     <main className="ledger">
       <header>
-        <div><strong>公开账本</strong><span>店家、优惠、提案、投票的每一次变化</span></div>
+        <div><strong>公开账本</strong><span>店家、推荐菜、优惠、提案、投票的每一次变化</span></div>
         <Link href="/">← 返回地图</Link>
       </header>
 

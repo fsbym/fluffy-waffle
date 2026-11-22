@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { THRESHOLDS, type Deal, type Proposal, type Restaurant } from "@/lib/types";
+import { formatPrice, THRESHOLDS, type Deal, type Dish, type Proposal, type Restaurant } from "@/lib/types";
 
 async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
@@ -55,7 +55,7 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
   return (
     <main className="admin">
       <header>
-        <div><strong>管理后台</strong><span>校园美食地图</span></div>
+        <div><strong>管理后台</strong><span>UTSG 简餐食堂指北</span></div>
         <nav>
           <Link href="/">← 返回地图</Link>
           {onLogout && <button type="button" onClick={onLogout}>退出登录</button>}
@@ -176,7 +176,7 @@ function Dashboard() {
         </>
       ) : (
         <>
-          <p className="muted">新增、修改优惠和新增店家附照片提交即生效，取消优惠需要 2 人附照片确认，都不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
+          <p className="muted">新增店家、推荐菜、优惠附照片提交即生效，删除推荐菜或优惠需要 2 人附照片确认，都不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
           {proposals.length === 0 && <p className="muted">暂时没有待确认的提案。</p>}
           {proposals.map((p) => <ProposalRow key={p.id} proposal={p} run={run} />)}
         </>
@@ -265,6 +265,13 @@ function RestaurantCard({ restaurant: r, run, categories }: { restaurant: Restau
         </div>
       )}
 
+      {r.dishes.length > 0 && (
+        <table>
+          <thead><tr><th>状态</th><th>推荐菜</th><th>税前</th><th>推荐理由</th><th>上次确认</th><th /></tr></thead>
+          <tbody>{r.dishes.map((d) => <DishRow key={d.id} dish={d} run={run} />)}</tbody>
+        </table>
+      )}
+
       {r.deals.length > 0 && (
         <table>
           <thead><tr><th>状态</th><th>优惠</th><th>来源</th><th>有效期</th><th>上次确认</th><th /></tr></thead>
@@ -288,6 +295,32 @@ function RestaurantCard({ restaurant: r, run, categories }: { restaurant: Restau
         <button type="submit" className="primary">添加</button>
       </form>
     </section>
+  );
+}
+
+function DishRow({ dish: d, run }: { dish: Dish; run: Run }) {
+  const patch = (json: Record<string, unknown>) => run(() => api(`/api/admin/dishes/${d.id}`, { method: "PATCH", json }));
+  return (
+    <tr>
+      <td><span className={`pill ${d.is_active ? "on" : "off"}`}>{d.is_active ? "在售" : "已下架"}</span></td>
+      <td>🍽️ {d.name}</td>
+      <td>{formatPrice(d.price)}</td>
+      <td>{d.note ?? "—"}</td>
+      <td>{d.last_verified_on}</td>
+      <td>
+        <div className="actions">
+          <button type="button" onClick={() => void patch({ is_active: !d.is_active })}>{d.is_active ? "下架" : "上架"}</button>
+          <button
+            type="button"
+            onClick={() => {
+              const next = prompt("新的税前价格", d.price.toFixed(2));
+              if (next) void patch({ price: next });
+            }}
+          >改价</button>
+          <button type="button" className="danger" onClick={() => { if (confirm(`删除「${d.name}」？`)) void run(() => api(`/api/admin/dishes/${d.id}`, { method: "DELETE" })); }}>删除</button>
+        </div>
+      </td>
+    </tr>
   );
 }
 

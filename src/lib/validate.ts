@@ -4,16 +4,17 @@ export class BadRequest extends Error {}
 
 type Body = Record<string, unknown>;
 
-export function text(body: Body, key: string, opts: { max: number; required?: boolean }): string | null {
+export function text(body: Body, key: string, opts: { max: number; required?: boolean; label?: string }): string | null {
   const value = body[key];
+  const label = opts.label ?? key;
   if (value === undefined || value === null || value === "") {
-    if (opts.required) throw new BadRequest(`缺少 ${key}`);
+    if (opts.required) throw new BadRequest(`请填写${label}`);
     return null;
   }
-  if (typeof value !== "string") throw new BadRequest(`${key} 格式不对`);
+  if (typeof value !== "string") throw new BadRequest(`${label}格式不对`);
   const trimmed = value.trim();
-  if (opts.required && !trimmed) throw new BadRequest(`缺少 ${key}`);
-  if (trimmed.length > opts.max) throw new BadRequest(`${key} 太长（最多 ${opts.max} 字）`);
+  if (opts.required && !trimmed) throw new BadRequest(`请填写${label}`);
+  if (trimmed.length > opts.max) throw new BadRequest(`${label}太长（最多 ${opts.max} 字）`);
   return trimmed || null;
 }
 
@@ -40,6 +41,20 @@ export function num(body: Body, key: string, opts: { min: number; max: number })
   if (value === undefined || value === null || value === "") return null;
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n) || n < opts.min || n > opts.max) throw new BadRequest(`${key} 数值不对`);
+  return n;
+}
+
+/** 税前价格：0 < 价格 < 1000，最多两位小数，可以带 $ 号 */
+export function price(body: Body, key: string, opts: { required?: boolean } = {}): number | null {
+  const raw = body[key];
+  if (raw === undefined || raw === null || raw === "") {
+    if (opts.required) throw new BadRequest("请填写税前价格");
+    return null;
+  }
+  const n = Number(String(raw).trim().replace(/^\$/, ""));
+  if (!Number.isFinite(n) || n <= 0 || n >= 1000 || Math.abs(Math.round(n * 100) - n * 100) > 1e-6) {
+    throw new BadRequest("价格格式不对，例如 12.99");
+  }
   return n;
 }
 

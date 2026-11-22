@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       p_kind: input.kind,
       p_restaurant_id: input.restaurant_id,
       p_deal_id: input.deal_id,
+      p_dish_id: input.dish_id,
       p_payload: input.payload,
       p_claim: input.claim,
       p_user: user.id,
