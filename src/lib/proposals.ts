@@ -47,10 +47,11 @@ export async function parseProposal(body: Body): Promise<ProposalInput> {
       const address = text(body, "address", { max: 160, required: true })!;
       const category = text(body, "category", { max: 20, required: true })!;
       const price_range = text(body, "price_range", { max: 30 });
+      const emoji = text(body, "emoji", { max: 8 });
       const { lat, lng } = await geocodeAddress(name, address);
       return {
         kind: "add_restaurant", restaurant_id: null, deal_id: null,
-        payload: { name, address, category, price_range, lat: String(lat), lng: String(lng) },
+        payload: { name, address, category, price_range, emoji, lat: String(lat), lng: String(lng) },
         claim: `新店家：${name}（${category}，${address}）`,
       };
     }

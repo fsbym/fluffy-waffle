@@ -1,5 +1,6 @@
 -- 校园美食地图 数据库结构
--- 在 Supabase 控制台 → SQL Editor 中运行本文件，再运行 seed.sql。本文件可以重复运行。
+-- 在 Supabase 控制台 → SQL Editor 中运行本文件即可。本文件可以重复运行。
+-- 不预置任何店家或优惠：所有数据都由用户提交。
 --
 -- 设计：
 -- * 同学提交「提案」（新增店家 / 新增优惠 / 修改优惠 / 取消优惠），每票都要附照片证据。
@@ -62,7 +63,7 @@ create table if not exists public.proposals (
   restaurant_id bigint references public.restaurants(id) on delete cascade,
   deal_id       bigint references public.deals(id) on delete cascade,
   payload       jsonb not null default '{}'::jsonb,
-  claim         text not null,               -- 人类可读的主张，例如「Kinton Ramen 的学生 9 折已经取消」
+  claim         text not null,               -- 人类可读的主张，例如「某店的学生 9 折已经取消」
   created_by    uuid not null,               -- Supabase Auth 用户 id（匿名化展示）
   status        text not null default 'pending'
                 check (status in ('pending', 'applied', 'rejected', 'expired', 'cancelled')),

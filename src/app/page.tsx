@@ -187,7 +187,14 @@ export default function Home() {
                 <a className="map-link" href={mapsUrl(item)} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地图查看 ${item.name}`}><MapPinIcon /></a>
               </article>
             ))}
-            {loadState === "ready" && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
+            {loadState === "ready" && restaurants.length === 0 && (
+              <div className="empty-state first">
+                <p>地图上还没有店家。</p>
+                <p>知道附近哪家好吃、有什么优惠？附张照片，添加第一家吧。</p>
+                <button type="button" className="submit-button" onClick={() => propose(null, "add_restaurant")}>＋ 添加第一家店</button>
+              </div>
+            )}
+            {loadState === "ready" && restaurants.length > 0 && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
           <p className="data-note">优惠由同学们共同维护：附照片提交即生效，取消一条优惠需要 2 人确认。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
         </aside>
@@ -286,6 +293,9 @@ export default function Home() {
         .map-link { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #e7e7df; border-radius: 8px; color: #738076; }
         .map-link svg { width: 16px; }
         .empty-state { height: 120px; display: grid; place-items: center; color: #969b94; font-size: 13px; }
+        .empty-state.first { height: auto; gap: 6px; padding: 32px 12px; text-align: center; line-height: 1.6; }
+        .empty-state.first p { margin: 0; }
+        .empty-state.first button { margin-top: 10px; }
         .map-panel { position: relative; overflow: hidden; background: #edf0e7; }
         .map-preview { position: absolute; z-index: 600; right: 26px; bottom: 24px; width: 330px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid rgba(58,78,64,.08); border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(72,82,68,.16); backdrop-filter: blur(8px); }
         .preview-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; border-radius: 10px; }

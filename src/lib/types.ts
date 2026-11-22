@@ -28,8 +28,6 @@ export type Restaurant = {
   deals: Deal[];
 };
 
-export const CATEGORIES = ["日料", "中餐", "西式", "甜点", "饮品", "快餐"] as const;
-
 export type ProposalKind = "add_restaurant" | "add_deal" | "update_deal" | "remove_deal";
 export type ProposalStatus = "pending" | "applied" | "rejected" | "expired" | "cancelled";
 export type Stance = "confirm" | "reject";

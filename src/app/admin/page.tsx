@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { CATEGORIES, THRESHOLDS, type Deal, type Proposal, type Restaurant } from "@/lib/types";
+import { THRESHOLDS, type Deal, type Proposal, type Restaurant } from "@/lib/types";
 
 async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
@@ -129,6 +129,7 @@ function Dashboard() {
   const [tab, setTab] = useState<"restaurants" | "proposals">("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const categories = [...new Set(restaurants.map((r) => r.category))];
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
@@ -169,8 +170,9 @@ function Dashboard() {
       {error && <p className="error" role="alert">{error}</p>}
       {tab === "restaurants" ? (
         <>
-          <NewRestaurant run={run} />
-          {restaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} run={run} />)}
+          <NewRestaurant run={run} categories={categories} />
+          {restaurants.length === 0 && <p className="muted">还没有店家。店家由同学们在网站上提交，也可以在这里直接添加。</p>}
+          {restaurants.map((r) => <RestaurantCard key={r.id} restaurant={r} run={run} categories={categories} />)}
         </>
       ) : (
         <>
@@ -185,7 +187,7 @@ function Dashboard() {
 
 type Run = (action: () => Promise<unknown>) => Promise<void>;
 
-function RestaurantFields({ r }: { r?: Restaurant }) {
+function RestaurantFields({ r, categories }: { r?: Restaurant; categories: string[] }) {
   return (
     <div className="grid">
       <label>店名<input name="name" required defaultValue={r?.name} /></label>
@@ -201,12 +203,12 @@ function RestaurantFields({ r }: { r?: Restaurant }) {
       <label>图标<input name="emoji" defaultValue={r?.emoji ?? "🍽️"} /></label>
       <label>底色<input name="color" type="color" defaultValue={r?.color ?? "#e7dfcf"} /></label>
       <label>强调色<input name="accent" type="color" defaultValue={r?.accent ?? "#df7a44"} /></label>
-      <datalist id="categories">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
+      <datalist id="categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
     </div>
   );
 }
 
-function NewRestaurant({ run }: { run: Run }) {
+function NewRestaurant({ run, categories }: { run: Run; categories: string[] }) {
   const [open, setOpen] = useState(false);
   if (!open) return <button type="button" className="primary" onClick={() => setOpen(true)} style={{ marginBottom: 14 }}>＋ 新增店家</button>;
   return (
@@ -218,7 +220,7 @@ function NewRestaurant({ run }: { run: Run }) {
         void run(async () => { await api("/api/admin/restaurants", { method: "POST", json: body }); setOpen(false); });
       }}
     >
-      <RestaurantFields />
+      <RestaurantFields categories={categories} />
       <div className="actions" style={{ marginTop: 12 }}>
         <button className="primary" type="submit">保存</button>
         <button type="button" onClick={() => setOpen(false)}>取消</button>
@@ -227,7 +229,7 @@ function NewRestaurant({ run }: { run: Run }) {
   );
 }
 
-function RestaurantCard({ restaurant: r, run }: { restaurant: Restaurant; run: Run }) {
+function RestaurantCard({ restaurant: r, run, categories }: { restaurant: Restaurant; run: Run; categories: string[] }) {
   const [editing, setEditing] = useState(false);
 
   return (
@@ -240,7 +242,7 @@ function RestaurantCard({ restaurant: r, run }: { restaurant: Restaurant; run: R
             void run(async () => { await api(`/api/admin/restaurants/${r.id}`, { method: "PATCH", json: body }); setEditing(false); });
           }}
         >
-          <RestaurantFields r={r} />
+          <RestaurantFields r={r} categories={categories} />
           <div className="actions" style={{ marginTop: 12 }}>
             <button className="primary" type="submit">保存</button>
             <button type="button" onClick={() => setEditing(false)}>取消</button>
