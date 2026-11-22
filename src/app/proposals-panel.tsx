@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { CONFIRM_THRESHOLD, type Proposal, type Stance, type Vote } from "@/lib/types";
+import { THRESHOLDS, type Proposal, type Stance, type Vote } from "@/lib/types";
 import { useAuth } from "./auth";
 import Modal from "./modal";
 import PhotoInput from "./photo-input";
@@ -47,7 +47,7 @@ export default function ProposalsPanel({ onClose, onChanged, onNeedLogin }: Prop
   return (
     <Modal title="大家提交的变更" onClose={onClose} wide>
       <div className="stack">
-        <p className="hint">每条变更需要 {CONFIRM_THRESHOLD} 位同学附照片确认（且确认多于反对）才会生效；{CONFIRM_THRESHOLD} 人反对则驳回；14 天没结果自动过期。所有记录都写进公开账本。</p>
+        <p className="hint">取消优惠需要 {THRESHOLDS.remove_deal} 位同学、修改优惠和新增店家需要 {THRESHOLDS.update_deal} 位同学附照片确认（且确认多于反对）才会生效；同样人数反对则驳回；14 天没结果自动过期。新增优惠提交即生效。所有记录都写进公开账本。</p>
         <div className="tabs">
           <button type="button" className={scope === "pending" ? "on" : ""} onClick={() => { setItems(null); setScope("pending"); }}>待确认</button>
           <button type="button" className={scope === "recent" ? "on" : ""} onClick={() => { setItems(null); setScope("recent"); }}>最近结果</button>
@@ -68,10 +68,11 @@ export default function ProposalsPanel({ onClose, onChanged, onNeedLogin }: Prop
   );
 }
 
-function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposal; onVoted: () => void; onNeedLogin: () => void }) {
+export function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposal; onVoted: () => void; onNeedLogin: () => void }) {
   const { email } = useAuth();
   const [voting, setVoting] = useState<Stance | null>(null);
-  const progress = Math.min(100, (p.confirms / CONFIRM_THRESHOLD) * 100);
+  const threshold = THRESHOLDS[p.kind];
+  const progress = Math.min(100, (p.confirms / threshold) * 100);
 
   return (
     <article className="card">
@@ -79,9 +80,9 @@ function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposa
         <strong>{p.claim}</strong>
         <span className={`status ${p.status}`}>{STATUS[p.status]}</span>
       </div>
-      <div className="bar" aria-label={`确认 ${p.confirms} / ${CONFIRM_THRESHOLD}`}><span style={{ width: `${progress}%` }} /></div>
+      <div className="bar" aria-label={`确认 ${p.confirms} / ${threshold}`}><span style={{ width: `${progress}%` }} /></div>
       <p className="count">
-        ✅ 确认 {p.confirms}/{CONFIRM_THRESHOLD} · ❌ 反对 {p.rejects}
+        ✅ 确认 {p.confirms}/{threshold} · ❌ 反对 {p.rejects}
         {p.status === "pending" && ` · 还剩 ${daysLeft(p.expires_at)} 天`}
       </p>
 

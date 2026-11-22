@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { CATEGORIES, CONFIRM_THRESHOLD, type Deal, type Proposal, type Restaurant } from "@/lib/types";
+import { CATEGORIES, THRESHOLDS, type Deal, type Proposal, type Restaurant } from "@/lib/types";
 
 async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
@@ -174,7 +174,7 @@ function Dashboard() {
         </>
       ) : (
         <>
-          <p className="muted">提案由同学们投票决定，{CONFIRM_THRESHOLD} 人附照片确认即生效，不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
+          <p className="muted">提案由同学们投票决定（新增优惠提交即生效，取消优惠 2 人、修改优惠和新增店家 3 人附照片确认），不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
           {proposals.length === 0 && <p className="muted">暂时没有待确认的提案。</p>}
           {proposals.map((p) => <ProposalRow key={p.id} proposal={p} run={run} />)}
         </>
@@ -343,7 +343,7 @@ function ProposalRow({ proposal: p, run }: { proposal: Proposal; run: Run }) {
       <div className="rhead">
         <div>
           <h3>{p.claim}</h3>
-          <span className="meta">确认 {p.confirms}/{CONFIRM_THRESHOLD} · 反对 {p.rejects} · 提交于 {new Date(p.created_at).toLocaleString("zh-CN")}</span>
+          <span className="meta">确认 {p.confirms}/{THRESHOLDS[p.kind]} · 反对 {p.rejects} · 提交于 {new Date(p.created_at).toLocaleString("zh-CN")}</span>
           <div className="actions" style={{ marginTop: 8 }}>
             {p.votes.map((v) => (
               <a key={v.id} href={`/api/evidence/${v.id}`} target="_blank" rel="noopener noreferrer">{v.voter} {v.stance === "confirm" ? "确认" : "反对"}的照片</a>

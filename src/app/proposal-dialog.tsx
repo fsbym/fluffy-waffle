@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CATEGORIES, CONFIRM_THRESHOLD, type ProposalKind, type Restaurant } from "@/lib/types";
+import { CATEGORIES, THRESHOLDS, type ProposalKind, type Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import Modal from "./modal";
 import PhotoInput from "./photo-input";
@@ -9,6 +9,9 @@ import PhotoInput from "./photo-input";
 type Props = {
   restaurants: Restaurant[];
   restaurantId: number | null;
+  /** 打开时预先选好的操作和优惠（从店家详情里点「变了 / 取消了」时使用） */
+  initialKind?: ProposalKind;
+  initialDealId?: number | null;
   onClose: () => void;
   onSubmitted: () => void;
 };
@@ -20,13 +23,13 @@ const ACTIONS: { kind: ProposalKind; label: string }[] = [
   { kind: "add_restaurant", label: "新店家" },
 ];
 
-export default function ProposalDialog({ restaurants, restaurantId, onClose, onSubmitted }: Props) {
+export default function ProposalDialog({ restaurants, restaurantId, initialKind = "add_deal", initialDealId = null, onClose, onSubmitted }: Props) {
   const { authFetch } = useAuth();
-  const [kind, setKind] = useState<ProposalKind>("add_deal");
+  const [kind, setKind] = useState<ProposalKind>(initialKind);
   const [rid, setRid] = useState(restaurantId ?? restaurants[0]?.id ?? 0);
   const restaurant = restaurants.find((r) => r.id === rid);
   const deals = restaurant?.deals ?? [];
-  const [dealId, setDealId] = useState<number | null>(deals[0]?.id ?? null);
+  const [dealId, setDealId] = useState<number | null>(initialDealId ?? deals[0]?.id ?? null);
   const deal = deals.find((d) => d.id === dealId) ?? deals[0];
   const [photo, setPhoto] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,7 +68,7 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
           <p className="success">
             {done.status === "applied"
               ? "已经生效！"
-              : `已收到，你的照片算作第 1 票。再有 ${CONFIRM_THRESHOLD - 1} 位同学附照片确认，就会自动更新到地图上。`}
+              : `已收到，你的照片算作第 1 票。再有 ${THRESHOLDS[kind] - 1} 位同学附照片确认，就会自动更新到地图上。`}
           </p>
           {done.reason && <p className="hint">AI 看到的：{done.reason}</p>}
           <div className="actions"><button type="button" className="primary" onClick={onClose}>好的</button></div>
@@ -77,7 +80,12 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
   return (
     <Modal title="提交优惠信息" onClose={onClose}>
       <form onSubmit={submit}>
-        <p className="hint">由大家共同维护：你提交后，再有 {CONFIRM_THRESHOLD - 1} 位同学附照片确认就会生效。照片会公开给大家查看。</p>
+        <p className="hint">
+          {THRESHOLDS[kind] === 1
+            ? "新增优惠附上照片提交后立即生效。"
+            : `由大家共同维护：你提交后，再有 ${THRESHOLDS[kind] - 1} 位同学附照片确认就会生效。`}
+          照片会公开给大家查看。
+        </p>
 
         <div className="choices" role="radiogroup" aria-label="要做什么">
           {ACTIONS.map((a) => (

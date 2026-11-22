@@ -65,6 +65,14 @@ export type LedgerEntry = {
   created_at: string;
 };
 
-/** 需要多少人确认（含提案人）才能生效，需与 supabase/schema.sql 中的默认值一致。 */
-export const CONFIRM_THRESHOLD = 3;
+/**
+ * 每种提案需要多少人（含提案人）附证据确认才生效；反对达到同样人数则驳回。
+ * 需与 supabase/schema.sql 中的 proposal_threshold 保持一致。
+ */
+export const THRESHOLDS: Record<ProposalKind, number> = {
+  add_deal: 1, // 新增优惠：附照片提交即生效
+  remove_deal: 2, // 取消优惠：2 人确认
+  update_deal: 3, // 修改优惠：3 人确认
+  add_restaurant: 3, // 新增店家：3 人确认
+};
 export const GENESIS_HASH = "0".repeat(64);

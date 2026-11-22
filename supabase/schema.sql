@@ -197,7 +197,19 @@ begin
   end case;
 end $$;
 
+-- 不同类型的提案需要几个人（含提案人）附证据确认才生效；反对也要达到同样人数才驳回。
+-- 与 src/lib/types.ts 中的 THRESHOLDS 保持一致。
+create or replace function public.proposal_threshold(p_kind text) returns int
+language sql immutable as $$
+  select case p_kind
+    when 'add_deal' then 1      -- 新增优惠：附照片提交即生效
+    when 'remove_deal' then 2   -- 取消优惠：2 人确认
+    else 3                      -- 修改优惠、新增店家：3 人确认
+  end
+$$;
+
 -- 投一票（附证据）。确认达到门槛且多于反对 → 生效；反对达到门槛且不少于确认 → 驳回。
+-- p_threshold 参数已不再使用（门槛由 proposal_threshold 按类型决定），保留它只是为了兼容旧的调用。
 create or replace function public.cast_vote(
   p_proposal bigint, p_user uuid, p_stance text,
   p_evidence_path text, p_evidence_sha256 text, p_ai_verdict text, p_ai_reason text,
@@ -209,6 +221,7 @@ declare
   v_confirm int;
   v_reject int;
   v_recent int;
+  v_threshold int;
 begin
   select * into p from public.proposals where id = p_proposal for update;
   if not found then raise exception 'not_found'; end if;
@@ -229,7 +242,8 @@ begin
     into v_confirm, v_reject
   from public.votes where proposal_id = p.id;
 
-  if v_confirm >= p_threshold and v_confirm > v_reject then
+  v_threshold := public.proposal_threshold(p.kind);
+  if v_confirm >= v_threshold and v_confirm > v_reject then
     perform set_config('app.actor', 'proposal:' || p.id, true);
     perform public.apply_proposal(p);
     update public.proposals set status = 'applied', resolved_at = now() where id = p.id;
@@ -238,7 +252,7 @@ begin
       update public.proposals set status = 'expired', resolved_at = now()
       where deal_id = p.deal_id and status = 'pending' and id <> p.id;
     end if;
-  elsif v_reject >= p_threshold and v_reject >= v_confirm then
+  elsif v_reject >= v_threshold and v_reject >= v_confirm then
     update public.proposals set status = 'rejected', resolved_at = now() where id = p.id;
   end if;
 
@@ -246,7 +260,8 @@ begin
     'id', p.id,
     'status', (select status from public.proposals where id = p.id),
     'confirms', v_confirm,
-    'rejects', v_reject
+    'rejects', v_reject,
+    'threshold', v_threshold
   );
 end $$;
 

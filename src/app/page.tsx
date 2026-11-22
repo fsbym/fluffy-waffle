@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import type { Deal, Restaurant } from "@/lib/types";
+import type { Deal, ProposalKind, Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import LoginDialog from "./login-dialog";
 import ProposalDialog from "./proposal-dialog";
 import MapView from "./map-view";
 import ProposalsPanel from "./proposals-panel";
+import RestaurantDetail from "./restaurant-detail";
 
 const mapsUrl = (item: Pick<Restaurant, "name" | "address">) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.address}`)}`;
@@ -34,7 +35,9 @@ export default function Home() {
   const [dealsOnly, setDealsOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dialog, setDialog] = useState<null | "login" | "propose" | "proposals">(null);
-  const [proposeFor, setProposeFor] = useState<number | null>(null);
+  const [proposeFor, setProposeFor] = useState<{ restaurantId: number | null; kind?: ProposalKind; dealId?: number }>({ restaurantId: null });
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
   const { email, signOut } = useAuth();
 
@@ -62,7 +65,28 @@ export default function Home() {
   const refresh = useCallback(() => {
     void load();
     void loadPending();
+    setReloadKey((k) => k + 1);
   }, [load, loadPending]);
+
+  /** 打开 / 关闭店家详情，并把店号写进网址（?r=店号），方便分享 */
+  const openDetail = useCallback((id: number | null) => {
+    setDetailId(id);
+    if (id !== null) setSelectedId(id);
+    const url = new URL(window.location.href);
+    if (id === null) url.searchParams.delete("r");
+    else url.searchParams.set("r", String(id));
+    window.history.replaceState(null, "", url);
+  }, []);
+
+  // 打开分享链接时，直接显示那家店
+  useEffect(() => {
+    if (loadState !== "ready") return;
+    const id = Number(new URLSearchParams(window.location.search).get("r"));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (id && restaurants.some((r) => r.id === id)) openDetail(id);
+    // 只在首次加载完成时检查一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadState]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -70,9 +94,9 @@ export default function Home() {
   }, [loadPending]);
 
   /** 需要登录的操作：没登录先弹登录框 */
-  const propose = (restaurantId: number | null) => {
+  const propose = (restaurantId: number | null, kind?: ProposalKind, dealId?: number) => {
     if (!email) { setDialog("login"); return; }
-    setProposeFor(restaurantId);
+    setProposeFor({ restaurantId, kind, dealId });
     setDialog("propose");
   };
 
@@ -141,7 +165,7 @@ export default function Home() {
             )}
             {loadState === "ready" && filtered.map((item) => (
               <article key={item.id} className={`restaurant-card ${selected?.id === item.id ? "selected" : ""}`} onMouseEnter={() => setSelectedId(item.id)}>
-                <button className="card-main" type="button" onClick={() => setSelectedId(item.id)}>
+                <button className="card-main" type="button" onClick={() => openDetail(item.id)} aria-label={`查看 ${item.name} 的详情`}>
                   <div className="food-thumb" style={{ background: item.color }}><span>{item.emoji}</span></div>
                   <div className="card-info">
                     <div className="name-row"><h2>{item.name}</h2>{item.rating !== null && <span className="rating">★ {item.rating.toFixed(1)}</span>}</div>
@@ -159,33 +183,50 @@ export default function Home() {
                     </div>
                   </div>
                 </button>
-                <button className="report-link" type="button" onClick={() => propose(item.id)}>报告变化</button>
+                <span className="more-hint" aria-hidden="true">详情 ›</span>
                 <a className="map-link" href={mapsUrl(item)} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地图查看 ${item.name}`}><MapPinIcon /></a>
               </article>
             ))}
             {loadState === "ready" && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
-          <p className="data-note">优惠由同学们共同维护：附照片提交，3 人确认即生效。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
+          <p className="data-note">优惠由同学们共同维护：附照片新增即生效，取消需 2 人确认、修改需 3 人确认。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
         </aside>
 
         <section className="map-panel" aria-label="美食地图">
           <MapView restaurants={filtered} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
           {selected && (
-            <div className="map-preview">
+            <div className="map-preview" role="button" tabIndex={0} onClick={() => openDetail(selected.id)} onKeyDown={(e) => { if (e.key === "Enter") openDetail(selected.id); }} aria-label={`查看 ${selected.name} 的详情`}>
               <div className="preview-thumb" style={{ background: selected.color }}><span>{selected.emoji}</span></div>
               <div className="preview-info">
                 <div className="preview-name"><h3>{selected.name}</h3>{selected.rating !== null && <span>★ {selected.rating.toFixed(1)}</span>}</div>
                 <p>{selected.address}</p>{selected.deals[0] && <strong>{dealLabel(selected.deals[0])}</strong>}
               </div>
-              <a href={mapsUrl(selected)} target="_blank" rel="noopener noreferrer" aria-label="打开 Google 地图"><span>↗</span></a>
+              <span className="preview-more" aria-hidden="true">›</span>
             </div>
           )}
         </section>
       </section>
 
+      {detailId !== null && restaurants.find((r) => r.id === detailId) && (
+        <RestaurantDetail
+          restaurant={restaurants.find((r) => r.id === detailId)!}
+          reloadKey={reloadKey}
+          onClose={() => openDetail(null)}
+          onPropose={(kind, dealId) => propose(detailId, kind, dealId)}
+          onChanged={refresh}
+          onNeedLogin={() => setDialog("login")}
+        />
+      )}
       {dialog === "login" && <LoginDialog onClose={() => setDialog(null)} />}
       {dialog === "propose" && (
-        <ProposalDialog restaurants={restaurants} restaurantId={proposeFor} onClose={() => setDialog(null)} onSubmitted={refresh} />
+        <ProposalDialog
+          restaurants={restaurants}
+          restaurantId={proposeFor.restaurantId}
+          initialKind={proposeFor.kind}
+          initialDealId={proposeFor.dealId}
+          onClose={() => setDialog(null)}
+          onSubmitted={refresh}
+        />
       )}
       {dialog === "proposals" && (
         <ProposalsPanel onClose={() => setDialog(null)} onChanged={refresh} onNeedLogin={() => setDialog("login")} />
@@ -208,8 +249,11 @@ export default function Home() {
         .ghost-button { height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid #e3e1d8; border-radius: 12px; background: #fff; color: #4a544c; font-size: 13px; cursor: pointer; white-space: nowrap; }
         .ghost-button:hover { border-color: #b9cbbd; }
         .badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #df7a44; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
-        .report-link { position: absolute; right: 10px; bottom: 10px; height: 24px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: #8b9288; font-size: 11px; cursor: pointer; }
-        .report-link:hover { background: #f3f2ee; color: #315f49; }
+        .more-hint { position: absolute; right: 14px; bottom: 12px; color: #a1a69f; font-size: 11px; pointer-events: none; }
+        .restaurant-card:hover .more-hint { color: #315f49; }
+        .preview-more { flex: 0 0 auto; color: #315f49; font-size: 26px; padding: 0 6px; }
+        .map-preview { cursor: pointer; }
+        .map-preview:hover { box-shadow: 0 16px 42px rgba(72,82,68,.24); }
         .data-note :global(a) { color: #315f49; }
         .submit-button { height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .submit-button:hover { background: #284f3c; }
@@ -252,7 +296,6 @@ export default function Home() {
         .preview-name span { color: #d97843; font-size: 11px; font-weight: 700; }
         .preview-info p { overflow: hidden; margin: 7px 0; color: #92988f; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
         .preview-info strong { display: inline-block; padding: 4px 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; }
-        .map-preview > a { width: 32px; height: 32px; flex: 0 0 32px; display: grid; place-items: center; border-radius: 50%; background: #315f49; color: #fff; text-decoration: none; }
         @media (max-width: 900px) {
           .topbar { grid-template-columns: 210px minmax(220px,1fr) auto; padding: 0 20px; }
           .content { grid-template-columns: 380px minmax(0,1fr); }
