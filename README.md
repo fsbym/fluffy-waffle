@@ -2,6 +2,42 @@
 
 多伦多大学（多大）St. George 主校区周边的美食与优惠地图，**由同学们共同维护**。
 
+## 我们的理念 · Our Ethos
+
+> 一张由大家写、大家验证、谁也不能偷偷改的美食地图。
+>
+> A food map written by everyone, verified by everyone, and quietly rewritten by no one.
+
+### 中文
+
+**信息属于大家，而不是某一个平台。** 哪家店好吃、哪里有学生折扣、饭团券还能不能用，这些知识本来就散落在每个同学的日常里。我们希望把它们汇集起来，又不交给某个人或某家公司独占。
+
+我们借用了区块链最珍贵的几个想法，但没有真的上链：
+
+- **共识，而不是权威。** 一条信息能不能上地图，不由管理员一个人说了算，而是要 3 位同学各自拿出照片证据来确认。你也可以反对，同样要拿出证据。
+- **历史不可篡改。** 每一次新增、修改、取消、投票，都会写进一本只能追加的公开账本。每条记录都带着上一条的哈希值，环环相扣：谁要是偷偷改了过去，链条就会断开。
+- **不用信任，可以验证。** 你不需要相信我们。打开 `/ledger`，你的浏览器会自己把整条链重新算一遍；也可以把账本下载下来，用任何语言自己验证。
+- **透明。** 证据照片、投票过程、谁在什么时候改了什么，全部公开。管理员也能撤销违规内容，但这个操作同样会被记进账本，所有人都看得到。
+
+**代码也是公开的。** 整个项目的代码都放在 GitHub 上：怎么计票、怎么记账、数据库有哪些权限，每一行都可以检查。觉得哪里不对，欢迎提 issue 或 pull request；想给自己的学校做一份，也可以直接 fork 一份拿去改。项目采用 [MIT 许可证](LICENSE)，可以自由使用、修改和分发，只需保留版权声明。
+
+我们相信：**最可靠的信息，来自开放的规则、公开的证据和每一个愿意动手核实的人。**
+
+### English
+
+**Knowledge belongs to the community, not to a platform.** Which places are good, where students get a discount, whether a Fantuan coupon still works: this knowledge already lives in the everyday experience of students. We want to gather it in one place without handing it to any single person or company.
+
+We borrow the most valuable ideas from blockchains, without putting anything on an actual chain:
+
+- **Consensus over authority.** No single admin decides what goes on the map. A change takes effect only after 3 students each confirm it with their own photo evidence. You can also object, and objections need evidence too.
+- **History that can't be rewritten.** Every addition, change, cancellation and vote is written to an append-only public ledger. Each entry carries the hash of the one before it, so if anyone quietly edits the past, the chain breaks.
+- **Don't trust, verify.** You don't have to take our word for it. Open `/ledger` and your own browser recomputes the whole chain. You can also download the ledger and check it yourself in any language.
+- **Transparency.** Evidence photos, votes, and who changed what and when are all public. Admins can remove abusive content, but that action is recorded in the ledger too, for everyone to see.
+
+**The code is public too.** The whole project is on GitHub: how votes are counted, how the ledger is written, what the database allows. Every line is open to inspection. If something looks wrong, open an issue or a pull request. If you want a map like this for your own school, fork it and make it yours. The project is released under the [MIT License](LICENSE): use, modify and share it freely, as long as you keep the copyright notice.
+
+We believe **the most reliable information comes from open rules, public evidence, and everyone willing to check for themselves.**
+
 ## 怎么运作
 
 - 任何人用邮箱登录后（不需要密码，收邮件点链接），都可以提交变更：**新店家 / 新增优惠 / 优惠变了 / 优惠取消了**。
@@ -53,3 +89,10 @@ npm run dev
 部署到 Vercel 时，把 `.env.example` 里的变量填进项目的 Environment Variables，并把 Supabase 的 Site URL 改成正式网址。
 
 > 初始数据里的折扣和饭团券是示例，上线后请同学们用提案改成真实信息。
+
+## 许可证 · License
+
+[MIT](LICENSE) © 2026 fsbym
+
+地图数据 © [OpenStreetMap](https://www.openstreetmap.org/copyright) 贡献者，采用 ODbL 许可。
+Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the ODbL.
