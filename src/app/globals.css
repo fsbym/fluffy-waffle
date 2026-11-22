@@ -1,17 +1,28 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #f7f4ed;
-  --ink: #1f2a25;
-  --green: #2f6a4f;
-  --sage: #dfe9df;
-  --orange: #df7a44;
+  /* 品牌色：橙红 + 雪白 + 荧光黄 */
+  --brand: #F42902;        /* 橙红：主按钮、图钉、强调 */
+  --brand-dark: #D42300;   /* 按钮悬停 */
+  --brand-text: #C21F00;   /* 小字号的橙红文字（价格、提示），保证对比度 */
+  --brand-soft: #FFEAE5;   /* 橙红浅底：折扣标签、错误提示 */
+  --accent: #C6FA00;       /* 荧光黄：只做背景，上面放深色字 */
+  --accent-soft: #F2FDD0;  /* 荧光黄浅底：优惠券标签、成功提示 */
+  --bg: #FDFDFF;           /* 雪白：页面背景 */
+  --surface: #FFFFFF;
+  --surface-2: #F3F4F8;    /* 次级底色：标签、占位 */
+  --ink: #16181D;          /* 主文字 */
+  --ink-2: #3D4150;        /* 次要文字 */
+  --muted: #6B7080;        /* 说明文字 */
+  --line: #E6E7EE;         /* 边框 */
+  --line-strong: #D3D5DF;
+  --shadow: 22, 24, 29;    /* 阴影颜色（rgba 用） */
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
-  background: var(--cream);
+  background: var(--bg);
   color: var(--ink);
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
 }

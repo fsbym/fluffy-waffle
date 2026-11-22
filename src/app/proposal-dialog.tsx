@@ -242,9 +242,9 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind,
       <style jsx>{`
         .groups { display: flex; flex-direction: column; gap: 8px; }
         .group { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center; }
-        .group-label { color: #8b9288; font-size: 12px; }
-        .sub { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px dashed #dfdfd7; border-radius: 12px; }
-        .sub legend { padding: 0 4px; color: #59625a; font-size: 12px; }
+        .group-label { color: var(--muted); font-size: 12px; }
+        .sub { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px; border: 1px dashed var(--line); border-radius: 12px; }
+        .sub legend { padding: 0 4px; color: var(--ink-2); font-size: 12px; }
         @media (max-width: 480px) { .group { grid-template-columns: 1fr; gap: 4px; } }
       `}</style>
     </Modal>

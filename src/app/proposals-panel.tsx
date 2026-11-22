@@ -61,8 +61,8 @@ export default function ProposalsPanel({ onClose, onChanged, onNeedLogin }: Prop
       </div>
       <style jsx>{`
         .tabs { display: flex; gap: 8px; }
-        .tabs button { height: 32px; padding: 0 14px; border: 1px solid #e2e1d8; border-radius: 16px; background: #fff; color: #737a72; font-size: 12px; cursor: pointer; }
-        .tabs button.on { border-color: #315f49; background: #315f49; color: #fff; }
+        .tabs button { height: 32px; padding: 0 14px; border: 1px solid var(--line); border-radius: 16px; background: #fff; color: var(--muted); font-size: 12px; cursor: pointer; }
+        .tabs button.on { border-color: var(--brand); background: var(--brand); color: #fff; }
       `}</style>
     </Modal>
   );
@@ -110,19 +110,19 @@ export function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: 
       {voting && <VoteForm proposalId={p.id} stance={voting} onCancel={() => setVoting(null)} onDone={() => { setVoting(null); onVoted(); }} />}
 
       <style jsx>{`
-        .card { padding: 14px; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; }
+        .card { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
         .top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
-        .status { flex: 0 0 auto; padding: 2px 8px; border-radius: 99px; background: #fff0e6; color: #c86a3d; font-size: 11px; font-weight: 700; }
-        .status.applied { background: #e5f0e5; color: #2f6a4f; }
-        .status.rejected, .status.expired, .status.cancelled { background: #f1efea; color: #8b9288; }
-        .bar { height: 6px; margin-top: 10px; overflow: hidden; border-radius: 3px; background: #eef0ea; }
-        .bar span { display: block; height: 100%; background: #4f8a68; }
-        .count { margin: 6px 0 0; color: #7d867d; font-size: 12px; }
+        .status { flex: 0 0 auto; padding: 2px 8px; border-radius: 99px; background: var(--brand-soft); color: var(--brand-text); font-size: 11px; font-weight: 700; }
+        .status.applied { background: var(--accent); color: var(--ink); }
+        .status.rejected, .status.expired, .status.cancelled { background: var(--surface-2); color: var(--muted); }
+        .bar { height: 6px; margin-top: 10px; overflow: hidden; border-radius: 3px; background: var(--surface-2); }
+        .bar span { display: block; height: 100%; background: var(--brand); }
+        .count { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
         .votes { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
         .votes li { display: flex; gap: 10px; align-items: center; font-size: 13px; }
-        .thumb { width: 52px; height: 52px; flex: 0 0 52px; overflow: hidden; border-radius: 8px; background: #f1efea; }
+        .thumb { width: 52px; height: 52px; flex: 0 0 52px; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
         .thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .ai { display: block; margin-top: 2px; color: #8b9288; font-size: 12px; }
+        .ai { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
         .vote-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
       `}</style>
     </article>

@@ -82,7 +82,7 @@ export default function MapView({ restaurants, selectedId, onSelect }: Props) {
       }
     }
     for (const r of visible) {
-      const html = `<div class="pin${r.id === selectedId ? " active" : ""}" style="--pin:${escapeHtml(r.accent)}"><span>${escapeHtml(r.emoji)}</span></div>`;
+      const html = `<div class="pin${r.id === selectedId ? " active" : ""}"><span>${escapeHtml(r.emoji)}</span></div>`;
       const icon = L.divIcon({ className: "pin-wrap", html, iconSize: [40, 40], iconAnchor: [20, 40] });
       let marker = markers.get(r.id);
       if (!marker) {
@@ -138,18 +138,18 @@ export default function MapView({ restaurants, selectedId, onSelect }: Props) {
       </button>
       <style jsx>{`
         .map-view { position: absolute; inset: 0; }
-        .map-canvas { position: absolute; inset: 0; background: #edf0e7; }
-        .locate { position: absolute; z-index: 500; top: 12px; left: 12px; height: 34px; padding: 0 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 10px; background: #fff; color: #315f49; font-size: 12px; font-weight: 700; box-shadow: 0 4px 12px rgba(40,50,40,.12); cursor: pointer; }
+        .map-canvas { position: absolute; inset: 0; background: var(--surface-2); }
+        .locate { position: absolute; z-index: 500; top: 12px; left: 12px; height: 34px; padding: 0 12px; border: 1px solid rgba(0,0,0,.08); border-radius: 10px; background: #fff; color: var(--brand-text); font-size: 12px; font-weight: 700; box-shadow: 0 4px 12px rgba(var(--shadow), .12); cursor: pointer; }
         .map-view :global(.leaflet-container) { font-family: inherit; }
-        /* 让 OSM 默认配色柔和一些，和网站的米色风格统一 */
-        .map-view :global(.leaflet-tile-pane) { filter: saturate(.55) brightness(1.04) contrast(.95); }
+        /* 降低 OSM 默认配色的饱和度，让橙红图钉更醒目 */
+        .map-view :global(.leaflet-tile-pane) { filter: saturate(.12) brightness(1.06) contrast(.92); }
         .map-view :global(.leaflet-control-attribution) { font-size: 10px; }
         .map-view :global(.pin-wrap) { background: none; border: 0; }
-        .map-view :global(.pin) { width: 40px; height: 40px; display: grid; place-items: center; border: 3px solid #fff; border-radius: 50% 50% 50% 6px; background: var(--pin); box-shadow: 0 6px 16px rgba(69,79,67,.25); transform: rotate(-45deg); transition: transform .15s; }
+        .map-view :global(.pin) { width: 40px; height: 40px; display: grid; place-items: center; border: 3px solid #fff; border-radius: 50% 50% 50% 6px; background: var(--brand); box-shadow: 0 6px 16px rgba(var(--shadow), .25); transform: rotate(-45deg); transition: transform .15s; }
         .map-view :global(.pin span) { font-size: 18px; transform: rotate(45deg); }
-        .map-view :global(.pin.active) { transform: rotate(-45deg) scale(1.18); box-shadow: 0 10px 24px rgba(69,79,67,.35); }
+        .map-view :global(.pin.active) { background: var(--accent); border-color: var(--ink); transform: rotate(-45deg) scale(1.18); box-shadow: 0 10px 24px rgba(var(--shadow), .35); }
         .map-view :global(.campus-marker) { background: none; border: 0; }
-        .map-view :global(.campus-marker span) { display: inline-block; padding: 4px 8px; border-radius: 13px; background: #315f49; color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(40,50,40,.2); }
+        .map-view :global(.campus-marker span) { display: inline-block; padding: 4px 8px; border-radius: 13px; background: var(--ink); color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 10px rgba(var(--shadow), .2); }
       `}</style>
     </div>
   );

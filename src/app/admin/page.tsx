@@ -66,31 +66,31 @@ function Shell({ children, onLogout }: { children: ReactNode; onLogout?: () => v
         .admin { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
         .admin header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
         .admin header strong { display: block; font-size: 20px; }
-        .admin header span, .admin .muted { color: #8b9288; font-size: 13px; }
+        .admin header span, .admin .muted { color: var(--muted); font-size: 13px; }
         .admin header nav { display: flex; gap: 12px; align-items: center; font-size: 13px; }
-        .admin a { color: #315f49; }
-        .admin button { height: 34px; padding: 0 13px; border: 1px solid #dfdfd7; border-radius: 9px; background: #fff; color: #4a544c; font-size: 13px; cursor: pointer; }
-        .admin button.primary { border-color: #315f49; background: #315f49; color: #fff; font-weight: 700; }
-        .admin button.danger { color: #b4492a; }
+        .admin a { color: var(--brand-text); }
+        .admin button { height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+        .admin button.primary { border-color: var(--brand); background: var(--brand); color: #fff; font-weight: 700; }
+        .admin button.danger { color: var(--brand-text); }
         .admin button:disabled { opacity: .55; cursor: default; }
-        .admin input, .admin select { height: 34px; padding: 0 10px; border: 1px solid #dfdfd7; border-radius: 9px; background: #fff; font-size: 13px; min-width: 0; }
-        .admin label { display: flex; flex-direction: column; gap: 4px; color: #6b736c; font-size: 12px; }
-        .admin .card { margin-bottom: 14px; padding: 16px; border: 1px solid #e6e3da; border-radius: 14px; background: #fff; }
+        .admin input, .admin select { height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; font-size: 13px; min-width: 0; }
+        .admin label { display: flex; flex-direction: column; gap: 4px; color: var(--ink-2); font-size: 12px; }
+        .admin .card { margin-bottom: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
         .admin .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; align-items: end; }
         .admin .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
-        .admin .tabs button.active { border-color: #315f49; background: #315f49; color: #fff; }
-        .admin .error { color: #b4492a; font-size: 13px; }
+        .admin .tabs button.active { border-color: var(--brand); background: var(--brand); color: #fff; }
+        .admin .error { color: var(--brand-text); font-size: 13px; }
         .admin .rhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .admin .rhead h3 { margin: 0; font-size: 16px; }
-        .admin .rhead .meta { color: #8b9288; font-size: 12px; }
+        .admin .rhead .meta { color: var(--muted); font-size: 12px; }
         .admin .actions { display: flex; gap: 6px; flex-wrap: wrap; }
         .admin table { width: 100%; margin-top: 12px; border-collapse: collapse; font-size: 13px; }
-        .admin td, .admin th { padding: 7px 6px; border-top: 1px solid #f0eee8; text-align: left; vertical-align: middle; }
-        .admin th { color: #8b9288; font-weight: 500; font-size: 12px; }
+        .admin td, .admin th { padding: 7px 6px; border-top: 1px solid var(--line); text-align: left; vertical-align: middle; }
+        .admin th { color: var(--muted); font-weight: 500; font-size: 12px; }
         .admin .pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-        .admin .pill.on { background: #e5f0e5; color: #2f6a4f; }
-        .admin .pill.off { background: #f1efea; color: #8b9288; }
-        .admin .pill.warn { background: #fff0e6; color: #c86a3d; }
+        .admin .pill.on { background: var(--accent); color: var(--ink); }
+        .admin .pill.off { background: var(--surface-2); color: var(--muted); }
+        .admin .pill.warn { background: var(--brand-soft); color: var(--brand-text); }
         .admin form.inline-form { display: grid; grid-template-columns: 110px 1fr 120px 140px auto; gap: 8px; margin-top: 10px; align-items: end; }
         @media (max-width: 720px) { .admin form.inline-form { grid-template-columns: 1fr 1fr; } }
       `}</style>
@@ -201,8 +201,8 @@ function RestaurantFields({ r, categories }: { r?: Restaurant; categories: strin
       <label>纬度 lat<input name="lat" type="number" step="any" min={-90} max={90} defaultValue={r?.lat ?? ""} placeholder="43.66" /></label>
       <label>经度 lng<input name="lng" type="number" step="any" min={-180} max={180} defaultValue={r?.lng ?? ""} placeholder="-79.40" /></label>
       <label>图标<input name="emoji" defaultValue={r?.emoji ?? "🍽️"} /></label>
-      <label>底色<input name="color" type="color" defaultValue={r?.color ?? "#e7dfcf"} /></label>
-      <label>强调色<input name="accent" type="color" defaultValue={r?.accent ?? "#df7a44"} /></label>
+      <label>底色<input name="color" type="color" defaultValue={r?.color ?? "var(--accent-soft)"} /></label>
+      <label>强调色<input name="accent" type="color" defaultValue={r?.accent ?? "var(--brand)"} /></label>
       <datalist id="categories">{categories.map((c) => <option key={c} value={c} />)}</datalist>
     </div>
   );

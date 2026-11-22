@@ -86,7 +86,7 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
     <Modal title={r.name} onClose={onClose} wide>
       <div className="detail">
         <section className="hero">
-          <div className="thumb" style={{ background: r.color }}><span>{r.emoji}</span></div>
+          <div className="thumb"><span>{r.emoji}</span></div>
           <div className="facts">
             <div className="chips">
               <span className="chip">{r.category}</span>
@@ -157,28 +157,28 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
       <style jsx>{`
         .detail { display: flex; flex-direction: column; gap: 22px; }
         .hero { display: flex; gap: 16px; align-items: flex-start; }
-        .thumb { width: 104px; height: 104px; flex: 0 0 104px; display: grid; place-items: center; border-radius: 16px; }
+        .thumb { width: 104px; height: 104px; flex: 0 0 104px; display: grid; place-items: center; border-radius: 16px; background: var(--accent-soft); }
         .thumb span { font-size: 52px; }
         .facts { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 10px; }
         .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-        .chip { padding: 3px 9px; border-radius: 99px; background: #f1efea; color: #59625a; font-size: 12px; }
-        .chip.star { background: #fff0e6; color: #c86a3d; font-weight: 700; }
-        .address { margin: 0; color: #4a544c; font-size: 14px; }
+        .chip { padding: 3px 9px; border-radius: 99px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
+        .chip.star { background: var(--brand-soft); color: var(--brand-text); font-weight: 700; }
+        .address { margin: 0; color: var(--ink-2); font-size: 14px; }
         .links { display: flex; flex-wrap: wrap; gap: 8px; }
-        .dbtn { display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border: 1px solid #dfdfd7; border-radius: 10px; background: #fff; color: #4a544c; font-size: 13px; text-decoration: none; cursor: pointer; }
-        .dbtn.primary { border-color: #315f49; background: #315f49; color: #fff; font-weight: 700; }
+        .dbtn { display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink-2); font-size: 13px; text-decoration: none; cursor: pointer; }
+        .dbtn.primary { border-color: var(--brand); background: var(--brand); color: #fff; font-weight: 700; }
         .dbtn.small { height: 30px; padding: 0 11px; font-size: 12px; }
         .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         h3 { margin: 0; font-size: 15px; }
-        .count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: #edf3ee; color: #2f6a4f; font-size: 12px; text-align: center; }
-        .empty { margin: 0; color: #8b9288; font-size: 13px; }
-        .tax-note { margin: 8px 0 0; color: #a1a69f; font-size: 11px; }
+        .count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--ink); font-weight: 700; font-size: 12px; text-align: center; }
+        .empty { margin: 0; color: var(--muted); font-size: 13px; }
+        .tax-note { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
         .deals, .recent { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .recent li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
-        .status { padding: 2px 8px; border-radius: 99px; background: #f1efea; color: #8b9288; font-size: 11px; font-weight: 700; }
-        .status.applied { background: #e5f0e5; color: #2f6a4f; }
-        .muted { color: #8b9288; font-size: 12px; }
+        .status { padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 11px; font-weight: 700; }
+        .status.applied { background: var(--accent); color: var(--ink); }
+        .muted { color: var(--muted); font-size: 12px; }
         @media (max-width: 560px) {
           .hero { flex-direction: column; }
           .thumb { width: 100%; height: 96px; }
@@ -208,16 +208,16 @@ function DishItem({ dish: d, hasPending, onPropose }: { dish: Dish; hasPending: 
         )}
       </div>
       <style jsx>{`
-        .dish { padding: 12px 14px; border: 1px solid #ebe8df; border-radius: 12px; background: #fff; }
+        .dish { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
         .main { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 15px; }
-        .price { flex: 0 0 auto; color: #c86a3d; font-size: 16px; font-weight: 800; }
-        .price small { color: #a1a69f; font-size: 11px; font-weight: 400; }
-        .note { margin: 6px 0 0; color: #59625a; font-size: 13px; }
-        .meta { margin-top: 6px; color: #8b9288; font-size: 12px; }
+        .price { flex: 0 0 auto; color: var(--brand-text); font-size: 16px; font-weight: 800; }
+        .price small { color: var(--muted); font-size: 11px; font-weight: 400; }
+        .note { margin: 6px 0 0; color: var(--ink-2); font-size: 13px; }
+        .meta { margin-top: 6px; color: var(--muted); font-size: 12px; }
         .deal-actions { display: flex; gap: 6px; margin-top: 8px; }
-        .deal-actions button { height: 28px; padding: 0 10px; border: 1px solid #e2e1d8; border-radius: 8px; background: #fafaf7; color: #59625a; font-size: 12px; cursor: pointer; }
-        .deal-actions button:hover { border-color: #b9cbbd; color: #315f49; }
-        .pending { color: #c86a3d; font-size: 12px; }
+        .deal-actions button { height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink-2); font-size: 12px; cursor: pointer; }
+        .deal-actions button:hover { border-color: var(--brand); color: var(--brand); }
+        .pending { color: var(--brand-text); font-size: 12px; }
       `}</style>
     </li>
   );
@@ -246,15 +246,15 @@ function DealItem({ deal: d, hasPending, onPropose }: { deal: Deal; hasPending: 
         )}
       </div>
       <style jsx>{`
-        .deal { padding: 12px 14px; border: 1px solid #ebe8df; border-radius: 12px; background: #fff; }
+        .deal { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
         .main { display: flex; gap: 8px; align-items: center; font-size: 14px; }
-        .kind { flex: 0 0 auto; padding: 2px 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 11px; font-weight: 700; }
-        .kind.coupon { background: #edf3e9; color: #557251; }
-        .meta { margin-top: 6px; color: #8b9288; font-size: 12px; }
+        .kind { flex: 0 0 auto; padding: 2px 7px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-text); font-size: 11px; font-weight: 700; }
+        .kind.coupon { background: var(--accent-soft); color: var(--ink); }
+        .meta { margin-top: 6px; color: var(--muted); font-size: 12px; }
         .deal-actions { display: flex; gap: 6px; margin-top: 8px; }
-        .deal-actions button { height: 28px; padding: 0 10px; border: 1px solid #e2e1d8; border-radius: 8px; background: #fafaf7; color: #59625a; font-size: 12px; cursor: pointer; }
-        .deal-actions button:hover { border-color: #b9cbbd; color: #315f49; }
-        .pending { color: #c86a3d; font-size: 12px; }
+        .deal-actions button { height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink-2); font-size: 12px; cursor: pointer; }
+        .deal-actions button:hover { border-color: var(--brand); color: var(--brand); }
+        .pending { color: var(--brand-text); font-size: 12px; }
       `}</style>
     </li>
   );
