@@ -139,7 +139,7 @@ export default function Home() {
           <button className="ghost-button" type="button" onClick={() => setDialog("proposals")}>
             待确认{pendingCount ? <span className="badge">{pendingCount}</span> : null}
           </button>
-          <button className="submit-button" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 推荐</button>
+          <button className="submit-button header-submit" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 推荐</button>
           {email ? (
             <button className="ghost-button account" type="button" onClick={() => void signOut()} title={`已登录：${email}（点击退出）`}>退出</button>
           ) : (
@@ -227,6 +227,9 @@ export default function Home() {
         </section>
       </section>
 
+      {/* 手机上「推荐」按钮固定在右下角，顶栏放不下 */}
+      <button className="fab" type="button" onClick={() => propose(selected?.id ?? null)} aria-label="推荐店家、菜或优惠">＋ 推荐</button>
+
       {detailId !== null && restaurants.find((r) => r.id === detailId) && (
         <RestaurantDetail
           restaurant={restaurants.find((r) => r.id === detailId)!}
@@ -278,6 +281,8 @@ export default function Home() {
         .data-note :global(a) { color: #315f49; }
         .submit-button { height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .submit-button:hover { background: #284f3c; }
+        .brand > div { min-width: 0; }
+        .fab { display: none; }
         .content { min-height: 0; flex: 1; display: grid; grid-template-columns: 430px minmax(0, 1fr); }
         .list-panel { min-height: 0; display: flex; flex-direction: column; padding: 28px 24px 20px 36px; background: #fbfaf6; border-right: 1px solid #e5e3da; }
         .list-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
@@ -335,11 +340,14 @@ export default function Home() {
           .brand { grid-column: 1; min-width: 0; gap: 8px; } .brand-mark { width: 38px; height: 38px; flex: 0 0 38px; font-size: 18px; }
           .brand span { display: none; } .brand strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
           .top-actions { grid-column: 2; grid-row: 1; gap: 6px; }
-          .top-actions .submit-button, .top-actions .ghost-button { height: 38px; padding: 0 10px; font-size: 12px; }
+          .top-actions .ghost-button { height: 36px; padding: 0 10px; font-size: 12px; }
+          .header-submit { display: none; }
+          .fab { position: fixed; z-index: 1100; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); display: inline-flex; align-items: center; height: 50px; padding: 0 20px; border: 0; border-radius: 25px; background: #315f49; color: #fff; font-size: 15px; font-weight: 700; box-shadow: 0 10px 24px rgba(31, 60, 45, .35); cursor: pointer; }
+          .fab:active { transform: scale(.97); }
           .search-wrap { grid-column: 1/-1; grid-row: 2; }
           .content { display: flex; flex-direction: column-reverse; }
           .map-panel { height: 420px; flex: 0 0 420px; }
-          .list-panel { min-height: 430px; padding: 20px 14px; }
+          .list-panel { min-height: 430px; padding: 20px 14px 96px; } /* 底部留出悬浮按钮的位置 */
           .restaurant-list { max-height: none; overflow: visible; }
           .map-preview { right: 12px; bottom: 24px; width: calc(100% - 24px); height: 84px; }
           .preview-thumb { width: 64px; height: 64px; flex-basis: 64px; } .preview-thumb span { font-size: 32px; }
