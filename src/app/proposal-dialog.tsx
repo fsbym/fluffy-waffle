@@ -65,7 +65,7 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
           <p className="success">
             {done.status === "applied"
               ? "已经生效！"
-              : `你的照片已通过检查，算作第 1 票。再有 ${CONFIRM_THRESHOLD - 1} 位同学附照片确认，就会自动更新到地图上。`}
+              : `已收到，你的照片算作第 1 票。再有 ${CONFIRM_THRESHOLD - 1} 位同学附照片确认，就会自动更新到地图上。`}
           </p>
           {done.reason && <p className="hint">AI 看到的：{done.reason}</p>}
           <div className="actions"><button type="button" className="primary" onClick={onClose}>好的</button></div>
@@ -77,7 +77,7 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
   return (
     <Modal title="提交优惠信息" onClose={onClose}>
       <form onSubmit={submit}>
-        <p className="hint">由大家共同维护：你提交后，再有 {CONFIRM_THRESHOLD - 1} 位同学附照片确认就会生效。每张照片都会先经过 AI 检查。</p>
+        <p className="hint">由大家共同维护：你提交后，再有 {CONFIRM_THRESHOLD - 1} 位同学附照片确认就会生效。照片会公开给大家查看。</p>
 
         <div className="choices" role="radiogroup" aria-label="要做什么">
           {ACTIONS.map((a) => (
@@ -142,7 +142,7 @@ export default function ProposalDialog({ restaurants, restaurantId, onClose, onS
         <div className="actions">
           <button type="button" onClick={onClose}>取消</button>
           <button type="submit" className="primary" disabled={busy || (needsDeal && deals.length === 0)}>
-            {busy ? "AI 检查照片中…" : "提交"}
+            {busy ? "上传中…" : "提交"}
           </button>
         </div>
       </form>

@@ -5,7 +5,7 @@
 ## 怎么运作
 
 - 任何人用邮箱登录后（不需要密码，收邮件点链接），都可以提交变更：**新店家 / 新增优惠 / 优惠变了 / 优惠取消了**。
-- 每次提交和每一票都**必须附照片证据**（店内告示、菜单、收据、饭团等 App 截图）。照片会先交给 Claude 检查：和这家店无关、或者和你的说法相反的照片会被拒绝。
+- 每次提交和每一票都**必须附照片证据**（店内告示、菜单、收据、饭团等 App 截图）。照片公开给所有人查看。（可选）配置 Claude API key 后，照片会先经过 AI 检查：和这家店无关、或者和你的说法相反的照片会被拒绝。
 - **3 位不同的同学附照片确认**（且确认多于反对）后，变更自动生效；3 人反对则驳回；14 天没结果自动过期。
 - 同一个人对同一提案只能投一票，同一张照片不能在同一提案里重复使用；每人每天最多提交 10 个提案、投 30 票。
 
@@ -32,7 +32,7 @@
 1. 在 [supabase.com](https://supabase.com) 免费新建项目
 2. **SQL Editor**：依次运行 `supabase/schema.sql`、`supabase/seed.sql`（会自动创建 `evidence` 存储桶）
 3. **Authentication → URL Configuration**：把 Site URL 设为你的网址（本地开发是 `http://localhost:3000`），登录邮件里的链接会跳回这里
-4. 在 [console.anthropic.com](https://console.anthropic.com) 创建 API key，用于检查照片
+4. （可选）在 [console.anthropic.com](https://console.anthropic.com) 创建 API key，开启照片的 AI 检查
 5. 复制 `.env.example` 为 `.env.local` 并填好
 6. 启动：
 

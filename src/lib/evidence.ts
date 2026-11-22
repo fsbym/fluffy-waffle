@@ -77,11 +77,11 @@ let anthropic: Anthropic | null = null;
  * - 不相关 → 拒绝
  * - 投「确认」但照片与主张矛盾，或投「反对」但照片支持主张 → 拒绝
  * - 其它情况接受，并记录 AI 的判断供大家参考
- * 设置 EVIDENCE_AI=off 可跳过检查（仅用于本地开发）。
+ * 没有配置 ANTHROPIC_API_KEY（或设置了 EVIDENCE_AI=off）时跳过 AI 检查：照片仍然必填、公开给大家看，
+ * 只是标记为「未经 AI 检查」，由投票的同学自己判断。
  */
 export async function checkEvidence(photo: Photo, claim: string, voterStance: Stance): Promise<EvidenceCheck> {
-  if (process.env.EVIDENCE_AI === "off") return { ok: true, verdict: "unchecked", reason: "AI 检查已关闭" };
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("缺少 ANTHROPIC_API_KEY 环境变量");
+  if (process.env.EVIDENCE_AI === "off" || !process.env.ANTHROPIC_API_KEY) return { ok: true, verdict: "unchecked", reason: "" };
   anthropic ??= new Anthropic();
 
   const response = await anthropic.beta.messages.parse({

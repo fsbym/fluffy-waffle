@@ -10,7 +10,7 @@ const VERDICT: Record<Vote["ai_verdict"], string> = {
   supports: "AI：照片支持主张",
   contradicts: "AI：照片与主张矛盾",
   unclear: "AI：相关但看不清",
-  unchecked: "AI：未检查",
+  unchecked: "",
 };
 
 const STATUS: Record<Proposal["status"], string> = {
@@ -94,7 +94,7 @@ function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: Proposa
             </a>
             <div>
               <b>{v.voter}</b> {v.stance === "confirm" ? "确认" : "反对"}
-              <span className="ai">{VERDICT[v.ai_verdict]}{v.ai_reason ? `：${v.ai_reason}` : ""}</span>
+              {VERDICT[v.ai_verdict] && <span className="ai">{VERDICT[v.ai_verdict]}{v.ai_reason ? `：${v.ai_reason}` : ""}</span>}
             </div>
           </li>
         ))}
@@ -160,7 +160,7 @@ function VoteForm({ proposalId, stance, onCancel, onDone }: { proposalId: number
       {error && <p className="error" role="alert">{error}</p>}
       <div className="actions">
         <button type="button" onClick={onCancel}>取消</button>
-        <button type="submit" className="primary" disabled={busy}>{busy ? "AI 检查照片中…" : stance === "confirm" ? "确认" : "反对"}</button>
+        <button type="submit" className="primary" disabled={busy}>{busy ? "上传中…" : stance === "confirm" ? "确认" : "反对"}</button>
       </div>
     </form>
   );
