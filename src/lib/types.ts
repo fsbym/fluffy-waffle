@@ -71,8 +71,8 @@ export type LedgerEntry = {
  */
 export const THRESHOLDS: Record<ProposalKind, number> = {
   add_deal: 1, // 新增优惠：附照片提交即生效
+  update_deal: 1, // 修改优惠：附照片提交即生效
+  add_restaurant: 1, // 新增店家：附照片提交即生效
   remove_deal: 2, // 取消优惠：2 人确认
-  update_deal: 3, // 修改优惠：3 人确认
-  add_restaurant: 3, // 新增店家：3 人确认
 };
 export const GENESIS_HASH = "0".repeat(64);

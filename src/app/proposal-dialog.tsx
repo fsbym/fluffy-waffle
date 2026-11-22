@@ -82,7 +82,7 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind 
       <form onSubmit={submit}>
         <p className="hint">
           {THRESHOLDS[kind] === 1
-            ? "新增优惠附上照片提交后立即生效。"
+            ? "附上照片提交后立即生效。"
             : `由大家共同维护：你提交后，再有 ${THRESHOLDS[kind] - 1} 位同学附照片确认就会生效。`}
           照片会公开给大家查看。
         </p>

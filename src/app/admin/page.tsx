@@ -174,7 +174,7 @@ function Dashboard() {
         </>
       ) : (
         <>
-          <p className="muted">提案由同学们投票决定（新增优惠提交即生效，取消优惠 2 人、修改优惠和新增店家 3 人附照片确认），不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
+          <p className="muted">新增、修改优惠和新增店家附照片提交即生效，取消优惠需要 2 人附照片确认，都不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
           {proposals.length === 0 && <p className="muted">暂时没有待确认的提案。</p>}
           {proposals.map((p) => <ProposalRow key={p.id} proposal={p} run={run} />)}
         </>
