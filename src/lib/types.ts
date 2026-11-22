@@ -12,6 +12,17 @@ export type Deal = {
   is_active: boolean;
 };
 
+export type Dish = {
+  id: number;
+  restaurant_id: number;
+  name: string;
+  /** 税前价格（加元） */
+  price: number;
+  note: string | null;
+  last_verified_on: string;
+  is_active: boolean;
+};
+
 export type Restaurant = {
   id: number;
   name: string;
@@ -26,9 +37,10 @@ export type Restaurant = {
   color: string;
   accent: string;
   deals: Deal[];
+  dishes: Dish[];
 };
 
-export type ProposalKind = "add_restaurant" | "add_deal" | "update_deal" | "remove_deal";
+export type ProposalKind = "add_restaurant" | "add_deal" | "update_deal" | "remove_deal" | "add_dish" | "update_dish" | "remove_dish";
 export type ProposalStatus = "pending" | "applied" | "rejected" | "expired" | "cancelled";
 export type Stance = "confirm" | "reject";
 
@@ -46,6 +58,7 @@ export type Proposal = {
   kind: ProposalKind;
   restaurant_id: number | null;
   deal_id: number | null;
+  dish_id: number | null;
   claim: string;
   status: ProposalStatus;
   created_at: string;
@@ -72,5 +85,13 @@ export const THRESHOLDS: Record<ProposalKind, number> = {
   update_deal: 1, // 修改优惠：附照片提交即生效
   add_restaurant: 1, // 新增店家：附照片提交即生效
   remove_deal: 2, // 取消优惠：2 人确认
+  add_dish: 1, // 推荐菜：附照片提交即生效
+  update_dish: 1, // 修改菜名 / 价格：附照片提交即生效
+  remove_dish: 2, // 下架推荐菜：2 人确认
 };
+
+/** 税前价格，例如 $12.99 */
+export function formatPrice(price: number): string {
+  return `$${price.toFixed(2)}`;
+}
 export const GENESIS_HASH = "0".repeat(64);

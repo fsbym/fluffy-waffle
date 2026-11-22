@@ -21,14 +21,14 @@ async function shrink(file: File): Promise<Blob> {
   }
 }
 
-export default function PhotoInput({ onChange, label = "照片证据" }: { onChange: (photo: Blob | null) => void; label?: string }) {
+export default function PhotoInput({ onChange, label = "照片证据", hint = "必填：店内告示、菜单、收据或 App 截图" }: { onChange: (photo: Blob | null) => void; label?: string; hint?: string }) {
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   return (
     <label className="photo">
-      <span>{label}<em>（必填：店内告示、菜单、收据或 App 截图）</em></span>
+      <span>{label}<em>（{hint}）</em></span>
       <div className="drop">
         {/* eslint-disable-next-line @next/next/no-img-element -- 本地预览的 blob: 地址，不适用 next/image */}
         {preview ? <img src={preview} alt="已选择的照片" /> : <span className="placeholder">📷 拍照或选择图片</span>}

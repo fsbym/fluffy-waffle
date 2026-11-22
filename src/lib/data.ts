@@ -1,10 +1,11 @@
 import "server-only";
 import { db, torontoToday } from "./supabase";
-import type { Deal, Restaurant } from "./types";
+import type { Deal, Dish, Restaurant } from "./types";
 import { BadRequest, date, int, kind, num, text, bool } from "./validate";
 
 const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, lat, lng, emoji, color, accent";
 const DEAL_COLUMNS = "id, restaurant_id, kind, title, source, starts_on, ends_on, last_verified_on, is_active";
+const DISH_COLUMNS = "id, restaurant_id, name, price, note, last_verified_on, is_active";
 
 function isCurrent(deal: Deal, today: string): boolean {
   return deal.is_active && (!deal.starts_on || deal.starts_on <= today) && (!deal.ends_on || deal.ends_on >= today);
@@ -13,7 +14,7 @@ function isCurrent(deal: Deal, today: string): boolean {
 async function fetchRestaurants(): Promise<Restaurant[]> {
   const { data, error } = await db()
     .from("restaurants")
-    .select(`${RESTAURANT_COLUMNS}, deals(${DEAL_COLUMNS})`)
+    .select(`${RESTAURANT_COLUMNS}, deals(${DEAL_COLUMNS}), dishes(${DISH_COLUMNS})`)
     .order("walk_minutes", { ascending: true, nullsFirst: false })
     .order("id");
   if (error) throw error;
@@ -21,6 +22,7 @@ async function fetchRestaurants(): Promise<Restaurant[]> {
     ...r,
     rating: r.rating === null ? null : Number(r.rating),
     deals: [...(r.deals as Deal[])].sort((a, b) => a.kind.localeCompare(b.kind) || a.id - b.id),
+    dishes: (r.dishes as Dish[]).map((d) => ({ ...d, price: Number(d.price) })).sort((a, b) => a.id - b.id),
   })) as Restaurant[];
 }
 
@@ -28,7 +30,7 @@ async function fetchRestaurants(): Promise<Restaurant[]> {
 export async function listPublicRestaurants(): Promise<Restaurant[]> {
   const today = torontoToday();
   const restaurants = await fetchRestaurants();
-  return restaurants.map((r) => ({ ...r, deals: r.deals.filter((d) => isCurrent(d, today)) }));
+  return restaurants.map((r) => ({ ...r, deals: r.deals.filter((d) => isCurrent(d, today)), dishes: r.dishes.filter((d) => d.is_active) }));
 }
 
 /** 后台：返回全部折扣，包括已停用和已过期的。 */

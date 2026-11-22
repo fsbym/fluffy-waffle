@@ -1,8 +1,8 @@
 import "server-only";
 import { geocodeAddress } from "./geocode";
 import { db } from "./supabase";
-import type { Deal, Proposal, ProposalKind, Restaurant, Stance, Vote } from "./types";
-import { BadRequest, date, int, text } from "./validate";
+import { formatPrice, type Deal, type Dish, type Proposal, type ProposalKind, type Restaurant, type Stance, type Vote } from "./types";
+import { BadRequest, date, int, price, text } from "./validate";
 
 const KIND_LABEL = { discount: "折扣", coupon: "优惠券" } as const;
 
@@ -12,6 +12,7 @@ export type ProposalInput = {
   kind: ProposalKind;
   restaurant_id: number | null;
   deal_id: number | null;
+  dish_id: number | null;
   payload: Record<string, string | null>;
   claim: string;
 };
@@ -34,6 +35,17 @@ async function getDeal(id: number) {
   return data;
 }
 
+async function getDish(id: number) {
+  const { data, error } = await db()
+    .from("dishes")
+    .select("id, name, price, note, is_active, restaurant_id, restaurants(name)")
+    .eq("id", id)
+    .maybeSingle<Pick<Dish, "id" | "name" | "note" | "is_active" | "restaurant_id"> & { price: number | string; restaurants: { name: string } }>();
+  if (error) throw error;
+  if (!data) throw new BadRequest("找不到这道菜");
+  return { ...data, price: Number(data.price) };
+}
+
 function dealKind(value: unknown): "discount" | "coupon" {
   if (value !== "discount" && value !== "coupon") throw new BadRequest("优惠类型只能是折扣或优惠券");
   return value;
@@ -43,38 +55,45 @@ function dealKind(value: unknown): "discount" | "coupon" {
 export async function parseProposal(body: Body): Promise<ProposalInput> {
   switch (body.kind) {
     case "add_restaurant": {
-      const name = text(body, "name", { max: 80, required: true })!;
-      const address = text(body, "address", { max: 160, required: true })!;
-      const category = text(body, "category", { max: 20, required: true })!;
-      const price_range = text(body, "price_range", { max: 30 });
-      const emoji = text(body, "emoji", { max: 8 });
+      const name = text(body, "name", { max: 80, required: true, label: "店名" })!;
+      const address = text(body, "address", { max: 160, required: true, label: "地址" })!;
+      const category = text(body, "category", { max: 20, required: true, label: "分类" })!;
+      const price_range = text(body, "price_range", { max: 30, label: "人均" });
+      const emoji = text(body, "emoji", { max: 8, label: "图标" });
+      const dish_name = text(body, "dish_name", { max: 60, label: "菜名" });
+      const dish_price = price(body, "dish_price", { required: Boolean(dish_name) });
+      if (dish_price !== null && !dish_name) throw new BadRequest("填了价格的话，也请写上菜名");
+      const dish_note = dish_name ? text(body, "dish_note", { max: 120, label: "推荐理由" }) : null;
       const { lat, lng } = await geocodeAddress(name, address);
       return {
-        kind: "add_restaurant", restaurant_id: null, deal_id: null,
-        payload: { name, address, category, price_range, emoji, lat: String(lat), lng: String(lng) },
-        claim: `新店家：${name}（${category}，${address}）`,
+        kind: "add_restaurant", restaurant_id: null, deal_id: null, dish_id: null,
+        payload: {
+          name, address, category, price_range, emoji, lat: String(lat), lng: String(lng),
+          dish_name, dish_price: dish_price === null ? null : String(dish_price), dish_note,
+        },
+        claim: `新店家：${name}（${category}，${address}）${dish_name ? `，推荐「${dish_name}」税前 ${formatPrice(dish_price!)}` : ""}`,
       };
     }
     case "add_deal": {
       const restaurant = await getRestaurant(int(body, "restaurant_id", { min: 1 }) ?? 0);
       const kind = dealKind(body.deal_kind);
-      const title = text(body, "title", { max: 120, required: true })!;
+      const title = text(body, "title", { max: 120, required: true, label: "优惠内容" })!;
       const ends_on = date(body, "ends_on");
-      const source = text(body, "source", { max: 40 });
+      const source = text(body, "source", { max: 40, label: "来源" });
       return {
-        kind: "add_deal", restaurant_id: restaurant.id, deal_id: null,
+        kind: "add_deal", restaurant_id: restaurant.id, deal_id: null, dish_id: null,
         payload: { deal_kind: kind, title, ends_on, source },
         claim: `${restaurant.name} 有${KIND_LABEL[kind]}：「${title}」${ends_on ? `，截至 ${ends_on}` : ""}`,
       };
     }
     case "update_deal": {
       const deal = await getDeal(int(body, "deal_id", { min: 1 }) ?? 0);
-      const title = text(body, "title", { max: 120, required: true })!;
+      const title = text(body, "title", { max: 120, required: true, label: "优惠内容" })!;
       const kind = body.deal_kind === undefined || body.deal_kind === "" ? deal.kind : dealKind(body.deal_kind);
       const ends_on = date(body, "ends_on");
       if (title === deal.title && kind === deal.kind && ends_on === deal.ends_on) throw new BadRequest("内容和现在一样，没有变化");
       return {
-        kind: "update_deal", restaurant_id: deal.restaurant_id, deal_id: deal.id,
+        kind: "update_deal", restaurant_id: deal.restaurant_id, deal_id: deal.id, dish_id: null,
         payload: { deal_kind: kind, title, ends_on },
         claim: `${deal.restaurants.name} 的「${deal.title}」变成了「${title}」${ends_on ? `，截至 ${ends_on}` : ""}`,
       };
@@ -83,8 +102,44 @@ export async function parseProposal(body: Body): Promise<ProposalInput> {
       const deal = await getDeal(int(body, "deal_id", { min: 1 }) ?? 0);
       if (!deal.is_active) throw new BadRequest("这条优惠已经下架了");
       return {
-        kind: "remove_deal", restaurant_id: deal.restaurant_id, deal_id: deal.id, payload: {},
+        kind: "remove_deal", restaurant_id: deal.restaurant_id, deal_id: deal.id, dish_id: null, payload: {},
         claim: `${deal.restaurants.name} 的「${deal.title}」已经取消了`,
+      };
+    }
+    case "add_dish": {
+      const restaurant = await getRestaurant(int(body, "restaurant_id", { min: 1 }) ?? 0);
+      const name = text(body, "name", { max: 60, required: true, label: "菜名" })!;
+      const p = price(body, "price", { required: true })!;
+      const note = text(body, "note", { max: 120, label: "推荐理由" });
+      return {
+        kind: "add_dish", restaurant_id: restaurant.id, deal_id: null, dish_id: null,
+        payload: { name, price: String(p), note },
+        claim: `${restaurant.name} 的「${name}」好吃，税前 ${formatPrice(p)}`,
+      };
+    }
+    case "update_dish": {
+      const dish = await getDish(int(body, "dish_id", { min: 1 }) ?? 0);
+      const name = text(body, "name", { max: 60, required: true, label: "菜名" })!;
+      const p = price(body, "price", { required: true })!;
+      const note = text(body, "note", { max: 120, label: "推荐理由" });
+      if (name === dish.name && p === dish.price && note === dish.note) throw new BadRequest("内容和现在一样，没有变化");
+      const changes = [
+        name !== dish.name ? `改名为「${name}」` : null,
+        p !== dish.price ? `税前价格 ${formatPrice(dish.price)} → ${formatPrice(p)}` : null,
+        note !== dish.note ? "更新了推荐理由" : null,
+      ].filter(Boolean).join("，");
+      return {
+        kind: "update_dish", restaurant_id: dish.restaurant_id, deal_id: null, dish_id: dish.id,
+        payload: { name, price: String(p), note },
+        claim: `${dish.restaurants.name} 的「${dish.name}」：${changes}`,
+      };
+    }
+    case "remove_dish": {
+      const dish = await getDish(int(body, "dish_id", { min: 1 }) ?? 0);
+      if (!dish.is_active) throw new BadRequest("这道菜已经下架了");
+      return {
+        kind: "remove_dish", restaurant_id: dish.restaurant_id, deal_id: null, dish_id: dish.id, payload: {},
+        claim: `${dish.restaurants.name} 的「${dish.name}」已经不卖了`,
       };
     }
     default:
@@ -106,7 +161,7 @@ type ProposalRow = Omit<Proposal, "votes" | "confirms" | "rejects"> & { created_
 export async function listProposals(scope: "pending" | "recent"): Promise<Proposal[]> {
   let query = db()
     .from("proposals")
-    .select("id, kind, restaurant_id, deal_id, claim, status, created_at, expires_at, created_by, votes(id, user_id, stance, ai_verdict, ai_reason, created_at)")
+    .select("id, kind, restaurant_id, deal_id, dish_id, claim, status, created_at, expires_at, created_by, votes(id, user_id, stance, ai_verdict, ai_reason, created_at)")
     .order("created_at", { ascending: false })
     .limit(100);
   query = scope === "pending"

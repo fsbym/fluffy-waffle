@@ -57,11 +57,26 @@ language sql immutable as $$
   ))::int end
 $$;
 
+-- 推荐菜：同学们觉得好吃的菜和税前价格
+create table if not exists public.dishes (
+  id               bigint generated always as identity primary key,
+  restaurant_id    bigint not null references public.restaurants(id) on delete cascade,
+  name             text not null,
+  price            numeric(7,2) not null check (price > 0 and price < 1000), -- 税前价格（加元）
+  note             text,                                                      -- 推荐理由，可不填
+  last_verified_on date not null default current_date,
+  is_active        boolean not null default true,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists dishes_restaurant_id_idx on public.dishes (restaurant_id);
+
 create table if not exists public.proposals (
   id            bigint generated always as identity primary key,
-  kind          text not null check (kind in ('add_restaurant', 'add_deal', 'update_deal', 'remove_deal')),
+  kind          text not null,
   restaurant_id bigint references public.restaurants(id) on delete cascade,
   deal_id       bigint references public.deals(id) on delete cascade,
+  dish_id       bigint references public.dishes(id) on delete cascade,
   payload       jsonb not null default '{}'::jsonb,
   claim         text not null,               -- 人类可读的主张，例如「某店的学生 9 折已经取消」
   created_by    uuid not null,               -- Supabase Auth 用户 id（匿名化展示）
@@ -69,15 +84,24 @@ create table if not exists public.proposals (
                 check (status in ('pending', 'applied', 'rejected', 'expired', 'cancelled')),
   created_at    timestamptz not null default now(),
   expires_at    timestamptz not null default now() + interval '14 days',
-  resolved_at   timestamptz,
-  constraint proposals_target_check check (
-    (kind = 'add_restaurant' and restaurant_id is null and deal_id is null) or
-    (kind = 'add_deal' and restaurant_id is not null and deal_id is null) or
-    (kind in ('update_deal', 'remove_deal') and deal_id is not null)
-  )
+  resolved_at   timestamptz
+);
+-- 下面用 alter 写约束，这样已经建好的数据库重新运行本文件也能升级
+alter table public.proposals add column if not exists dish_id bigint references public.dishes(id) on delete cascade;
+alter table public.proposals drop constraint if exists proposals_kind_check;
+alter table public.proposals add constraint proposals_kind_check check (kind in (
+  'add_restaurant', 'add_deal', 'update_deal', 'remove_deal', 'add_dish', 'update_dish', 'remove_dish'
+));
+alter table public.proposals drop constraint if exists proposals_target_check;
+alter table public.proposals add constraint proposals_target_check check (
+  (kind = 'add_restaurant' and restaurant_id is null and deal_id is null and dish_id is null) or
+  (kind in ('add_deal', 'add_dish') and restaurant_id is not null and deal_id is null and dish_id is null) or
+  (kind in ('update_deal', 'remove_deal') and deal_id is not null and dish_id is null) or
+  (kind in ('update_dish', 'remove_dish') and dish_id is not null and deal_id is null)
 );
 create index if not exists proposals_status_idx on public.proposals (status, created_at desc);
 create index if not exists proposals_deal_idx on public.proposals (deal_id) where status = 'pending';
+create index if not exists proposals_dish_idx on public.proposals (dish_id) where status = 'pending';
 
 create table if not exists public.votes (
   id              bigint generated always as identity primary key,
@@ -147,6 +171,9 @@ end $$;
 drop trigger if exists restaurants_updated_at on public.restaurants;
 create trigger restaurants_updated_at before update on public.restaurants
   for each row execute function public.set_updated_at();
+drop trigger if exists dishes_updated_at on public.dishes;
+create trigger dishes_updated_at before update on public.dishes
+  for each row execute function public.set_updated_at();
 drop trigger if exists deals_updated_at on public.deals;
 create trigger deals_updated_at before update on public.deals
   for each row execute function public.set_updated_at();
@@ -156,6 +183,9 @@ create trigger restaurants_ledger after insert or update or delete on public.res
   for each row execute function public.ledger_capture();
 drop trigger if exists deals_ledger on public.deals;
 create trigger deals_ledger after insert or update or delete on public.deals
+  for each row execute function public.ledger_capture();
+drop trigger if exists dishes_ledger on public.dishes;
+create trigger dishes_ledger after insert or update or delete on public.dishes
   for each row execute function public.ledger_capture();
 drop trigger if exists proposals_ledger_insert on public.proposals;
 create trigger proposals_ledger_insert after insert on public.proposals
@@ -174,6 +204,8 @@ create trigger ledger_no_update before update or delete on public.ledger
 
 create or replace function public.apply_proposal(p public.proposals) returns void
 language plpgsql as $$
+declare
+  v_restaurant_id bigint;
 begin
   case p.kind
   when 'add_restaurant' then
@@ -181,7 +213,26 @@ begin
     values (p.payload->>'name', p.payload->>'category', p.payload->>'address',
             nullif(p.payload->>'price_range', ''), coalesce(nullif(p.payload->>'emoji', ''), '🍽️'),
             (p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision,
-            public.walk_minutes_from_campus((p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision));
+            public.walk_minutes_from_campus((p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision))
+    returning id into v_restaurant_id;
+    -- 新店家可以顺便推荐第一道菜
+    if nullif(p.payload->>'dish_name', '') is not null then
+      insert into public.dishes (restaurant_id, name, price, note)
+      values (v_restaurant_id, p.payload->>'dish_name', (p.payload->>'dish_price')::numeric, nullif(p.payload->>'dish_note', ''));
+    end if;
+  when 'add_dish' then
+    insert into public.dishes (restaurant_id, name, price, note)
+    values (p.restaurant_id, p.payload->>'name', (p.payload->>'price')::numeric, nullif(p.payload->>'note', ''));
+  when 'update_dish' then
+    update public.dishes set
+      name = coalesce(nullif(p.payload->>'name', ''), name),
+      price = coalesce((p.payload->>'price')::numeric, price),
+      note = case when p.payload ? 'note' then nullif(p.payload->>'note', '') else note end,
+      is_active = true,
+      last_verified_on = current_date
+    where id = p.dish_id;
+  when 'remove_dish' then
+    update public.dishes set is_active = false, last_verified_on = current_date where id = p.dish_id;
   when 'add_deal' then
     insert into public.deals (restaurant_id, kind, title, source, ends_on)
     values (p.restaurant_id, p.payload->>'deal_kind', p.payload->>'title',
@@ -205,7 +256,8 @@ create or replace function public.proposal_threshold(p_kind text) returns int
 language sql immutable as $$
   select case p_kind
     when 'remove_deal' then 2   -- 取消优惠：2 人确认
-    else 1                      -- 新增优惠、修改优惠、新增店家：附照片提交即生效
+    when 'remove_dish' then 2   -- 下架推荐菜：2 人确认
+    else 1                      -- 新增店家、新增/修改优惠、推荐/修改菜：附照片提交即生效
   end
 $$;
 
@@ -253,6 +305,10 @@ begin
       update public.proposals set status = 'expired', resolved_at = now()
       where deal_id = p.deal_id and status = 'pending' and id <> p.id;
     end if;
+    if p.dish_id is not null then
+      update public.proposals set status = 'expired', resolved_at = now()
+      where dish_id = p.dish_id and status = 'pending' and id <> p.id;
+    end if;
   elsif v_reject >= v_threshold and v_reject >= v_confirm then
     update public.proposals set status = 'rejected', resolved_at = now() where id = p.id;
   end if;
@@ -267,10 +323,12 @@ begin
 end $$;
 
 -- 新建提案，提案人的证据自动算作第一票「确认」。
+-- 旧版本没有 p_dish_id 参数，先删掉旧签名，避免出现两个同名函数。
+drop function if exists public.create_proposal(text, bigint, bigint, jsonb, text, uuid, text, text, text, text, integer);
 create or replace function public.create_proposal(
   p_kind text, p_restaurant_id bigint, p_deal_id bigint, p_payload jsonb, p_claim text, p_user uuid,
   p_evidence_path text, p_evidence_sha256 text, p_ai_verdict text, p_ai_reason text,
-  p_threshold int default 3
+  p_threshold int default 3, p_dish_id bigint default null
 ) returns jsonb
 language plpgsql as $$
 declare
@@ -285,10 +343,15 @@ begin
   ) then
     raise exception 'duplicate_pending';
   end if;
+  if p_dish_id is not null and exists (
+    select 1 from public.proposals where dish_id = p_dish_id and status = 'pending' and expires_at > now()
+  ) then
+    raise exception 'duplicate_pending';
+  end if;
 
   perform set_config('app.actor', 'user:' || p_user, true);
-  insert into public.proposals (kind, restaurant_id, deal_id, payload, claim, created_by)
-  values (p_kind, p_restaurant_id, p_deal_id, coalesce(p_payload, '{}'::jsonb), p_claim, p_user)
+  insert into public.proposals (kind, restaurant_id, deal_id, dish_id, payload, claim, created_by)
+  values (p_kind, p_restaurant_id, p_deal_id, p_dish_id, coalesce(p_payload, '{}'::jsonb), p_claim, p_user)
   returning id into v_id;
 
   return public.cast_vote(v_id, p_user, 'confirm', p_evidence_path, p_evidence_sha256, p_ai_verdict, p_ai_reason, p_threshold);
@@ -298,6 +361,7 @@ end $$;
 
 alter table public.restaurants enable row level security;
 alter table public.deals       enable row level security;
+alter table public.dishes      enable row level security;
 alter table public.proposals   enable row level security;
 alter table public.votes       enable row level security;
 alter table public.ledger      enable row level security;

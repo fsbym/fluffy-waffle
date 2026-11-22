@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Deal, Proposal, ProposalKind, Restaurant } from "@/lib/types";
+import { formatPrice, type Deal, type Dish, type Proposal, type ProposalKind, type Restaurant } from "@/lib/types";
 import Modal from "./modal";
 import { ProposalCard } from "./proposals-panel";
 
@@ -10,7 +10,7 @@ type Props = {
   /** 数据变化（投票、提交）后递增，用来重新加载这家店的提案 */
   reloadKey: number;
   onClose: () => void;
-  onPropose: (kind: ProposalKind, dealId?: number) => void;
+  onPropose: (kind: ProposalKind, target?: { dealId?: number; dishId?: number }) => void;
   onChanged: () => void;
   onNeedLogin: () => void;
 };
@@ -66,6 +66,7 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
   }, [load, reloadKey]);
 
   const pendingDealIds = new Set((pending ?? []).map((p) => p.deal_id).filter(Boolean));
+  const pendingDishIds = new Set((pending ?? []).map((p) => p.dish_id).filter(Boolean));
 
   async function share() {
     const url = `${window.location.origin}/?r=${r.id}`;
@@ -105,10 +106,22 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
 
         <section>
           <div className="section-head">
+            <h3>推荐菜 <span className="count">{r.dishes.length}</span></h3>
+            <button type="button" className="dbtn small" onClick={() => onPropose("add_dish")}>＋ 推荐一道菜</button>
+          </div>
+          {r.dishes.length === 0 && <p className="empty">还没有人推荐这家店的菜。吃过觉得好吃？拍张照推荐一下吧。</p>}
+          <ul className="deals">
+            {r.dishes.map((d) => <DishItem key={d.id} dish={d} hasPending={pendingDishIds.has(d.id)} onPropose={onPropose} />)}
+          </ul>
+          {r.dishes.length > 0 && <p className="tax-note">价格均为税前，安省堂食一般另加 13% HST。</p>}
+        </section>
+
+        <section>
+          <div className="section-head">
             <h3>优惠 <span className="count">{r.deals.length}</span></h3>
             <button type="button" className="dbtn small" onClick={() => onPropose("add_deal")}>＋ 新增优惠</button>
           </div>
-          {r.deals.length === 0 && <p className="empty">暂时没有已确认的优惠。知道这家店有什么优惠吗？附张照片提交吧。</p>}
+          {r.deals.length === 0 && <p className="empty">暂时没有优惠。没有优惠也没关系，好吃就行；知道有什么优惠的话，附张照片提交吧。</p>}
           <ul className="deals">
             {r.deals.map((d) => <DealItem key={d.id} deal={d} hasPending={pendingDealIds.has(d.id)} onPropose={onPropose} />)}
           </ul>
@@ -159,6 +172,7 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
         h3 { margin: 0; font-size: 15px; }
         .count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: #edf3ee; color: #2f6a4f; font-size: 12px; text-align: center; }
         .empty { margin: 0; color: #8b9288; font-size: 13px; }
+        .tax-note { margin: 8px 0 0; color: #a1a69f; font-size: 11px; }
         .deals, .recent { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
         .stack { display: flex; flex-direction: column; gap: 10px; }
         .recent li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
@@ -174,7 +188,42 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
   );
 }
 
-function DealItem({ deal: d, hasPending, onPropose }: { deal: Deal; hasPending: boolean; onPropose: (kind: ProposalKind, dealId?: number) => void }) {
+function DishItem({ dish: d, hasPending, onPropose }: { dish: Dish; hasPending: boolean; onPropose: Props["onPropose"] }) {
+  return (
+    <li className="dish">
+      <div className="main">
+        <strong>{d.name}</strong>
+        <span className="price">{formatPrice(d.price)}<small> 税前</small></span>
+      </div>
+      {d.note && <p className="note">“{d.note}”</p>}
+      <div className="meta">{daysAgo(d.last_verified_on)}确认</div>
+      <div className="deal-actions">
+        {hasPending ? (
+          <span className="pending">已有待确认的变更，见下方</span>
+        ) : (
+          <>
+            <button type="button" onClick={() => onPropose("update_dish", { dishId: d.id })}>价格 / 菜名变了</button>
+            <button type="button" onClick={() => onPropose("remove_dish", { dishId: d.id })}>没有了</button>
+          </>
+        )}
+      </div>
+      <style jsx>{`
+        .dish { padding: 12px 14px; border: 1px solid #ebe8df; border-radius: 12px; background: #fff; }
+        .main { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 15px; }
+        .price { flex: 0 0 auto; color: #c86a3d; font-size: 16px; font-weight: 800; }
+        .price small { color: #a1a69f; font-size: 11px; font-weight: 400; }
+        .note { margin: 6px 0 0; color: #59625a; font-size: 13px; }
+        .meta { margin-top: 6px; color: #8b9288; font-size: 12px; }
+        .deal-actions { display: flex; gap: 6px; margin-top: 8px; }
+        .deal-actions button { height: 28px; padding: 0 10px; border: 1px solid #e2e1d8; border-radius: 8px; background: #fafaf7; color: #59625a; font-size: 12px; cursor: pointer; }
+        .deal-actions button:hover { border-color: #b9cbbd; color: #315f49; }
+        .pending { color: #c86a3d; font-size: 12px; }
+      `}</style>
+    </li>
+  );
+}
+
+function DealItem({ deal: d, hasPending, onPropose }: { deal: Deal; hasPending: boolean; onPropose: Props["onPropose"] }) {
   return (
     <li className="deal">
       <div className="main">
@@ -191,8 +240,8 @@ function DealItem({ deal: d, hasPending, onPropose }: { deal: Deal; hasPending: 
           <span className="pending">已有待确认的变更，见下方</span>
         ) : (
           <>
-            <button type="button" onClick={() => onPropose("update_deal", d.id)}>内容变了</button>
-            <button type="button" onClick={() => onPropose("remove_deal", d.id)}>已经取消</button>
+            <button type="button" onClick={() => onPropose("update_deal", { dealId: d.id })}>内容变了</button>
+            <button type="button" onClick={() => onPropose("remove_deal", { dealId: d.id })}>已经取消</button>
           </>
         )}
       </div>

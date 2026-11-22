@@ -3,8 +3,8 @@ import { AuthProvider } from "./auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "校园美食地图 · 多大 St. George",
-  description: "为多伦多大学 St. George 主校区学生整理附近美食与折扣。",
+  title: "UTSG 简餐食堂指北",
+  description: "多伦多大学 St. George 校区附近的简餐、食堂和好吃的菜，附税前价格和学生优惠，由同学们共同维护。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

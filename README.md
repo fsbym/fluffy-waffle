@@ -1,6 +1,8 @@
-# 校园美食地图
+# UTSG 简餐食堂指北
 
-多伦多大学（多大）St. George 主校区周边的美食与优惠地图，**由同学们共同维护**。
+多伦多大学（多大）St. George 校区附近的简餐、食堂和好吃的菜，**由同学们共同维护**。
+
+不一定要有优惠，好吃就行：每家店都可以列出大家推荐的菜和**税前价格**；如果有学生折扣、饭团券等优惠，也一并标出来。
 
 ## 我们的理念 · Our Ethos
 
@@ -14,7 +16,7 @@
 
 我们借用了区块链最珍贵的几个想法，但没有真的上链：
 
-- **共识，而不是权威。** 一条信息能不能上地图，不由管理员一个人说了算，而是人人都能动手：新增店家、新增或修改优惠，只要附上照片就能立刻生效；要取消一条优惠，则需要 2 位同学各自拿出照片证据来确认，避免一个人就把别人的贡献删掉。你也可以反对，同样要拿出证据。
+- **共识，而不是权威。** 一条信息能不能上地图，不由管理员一个人说了算，而是人人都能动手：新增店家、推荐一道菜、更新价格、新增或修改优惠，只要附上照片就能立刻生效；要删除一道推荐菜或一条优惠，则需要 2 位同学各自拿出照片证据来确认，避免一个人就把别人的贡献删掉。你也可以反对，同样要拿出证据。
 - **历史不可篡改。** 每一次新增、修改、取消、投票，都会写进一本只能追加的公开账本。每条记录都带着上一条的哈希值，环环相扣：谁要是偷偷改了过去，链条就会断开。
 - **不用信任，可以验证。** 你不需要相信我们。打开 `/ledger`，你的浏览器会自己把整条链重新算一遍；也可以把账本下载下来，用任何语言自己验证。
 - **透明。** 证据照片、投票过程、谁在什么时候改了什么，全部公开。管理员也能撤销违规内容，但这个操作同样会被记进账本，所有人都看得到。
@@ -25,11 +27,11 @@
 
 ### English
 
-**Knowledge belongs to the community, not to a platform.** Which places are good, where students get a discount, whether a Fantuan coupon still works: this knowledge already lives in the everyday experience of students. We want to gather it in one place without handing it to any single person or company.
+**Knowledge belongs to the community, not to a platform.** Which places near UTSG are good, which dish to order and what it costs, where students get a discount: this knowledge already lives in the everyday experience of students. We want to gather it in one place without handing it to any single person or company.
 
 We borrow the most valuable ideas from blockchains, without putting anything on an actual chain:
 
-- **Consensus over authority.** No single admin decides what goes on the map. Anyone can add a store, or add or change a deal, and it goes live as soon as they post it with a photo. Cancelling a deal takes 2 students, each with their own photo evidence, so no single person can erase someone else's contribution. You can also object, and objections need evidence too.
+- **Consensus over authority.** No single admin decides what goes on the map. Anyone can add a place, recommend a dish, update a price, or add or change a deal, and it goes live as soon as they post it with a photo. Removing a dish or a deal takes 2 students, each with their own photo evidence, so no single person can erase someone else's contribution. You can also object, and objections need evidence too.
 - **History that can't be rewritten.** Every addition, change, cancellation and vote is written to an append-only public ledger. Each entry carries the hash of the one before it, so if anyone quietly edits the past, the chain breaks.
 - **Don't trust, verify.** You don't have to take our word for it. Open `/ledger` and your own browser recomputes the whole chain. You can also download the ledger and check it yourself in any language.
 - **Transparency.** Evidence photos, votes, and who changed what and when are all public. Admins can remove abusive content, but that action is recorded in the ledger too, for everyone to see.
@@ -40,10 +42,11 @@ We believe **the most reliable information comes from open rules, public evidenc
 
 ## 怎么运作
 
-- 任何人用邮箱登录后（不需要密码，收邮件点链接），都可以提交变更：**新店家 / 新增优惠 / 优惠变了 / 优惠取消了**。
+- 任何人用邮箱登录后（不需要密码，收邮件点链接），都可以提交：**新店家 / 推荐一道菜 / 菜的价格或名字变了 / 这道菜没了 / 新增优惠 / 优惠变了 / 优惠取消了**。
+- 推荐菜要写**税前价格**（加元）；安省堂食一般另加 13% HST。
 - 每次提交和每一票都**必须附照片证据**（店内告示、菜单、收据、饭团等 App 截图）。照片公开给所有人查看。（可选）配置 Claude API key 后，照片会先经过 AI 检查：和这家店无关、或者和你的说法相反的照片会被拒绝。
-- **新增店家、新增优惠、修改优惠**：附照片提交即生效。
-- **取消优惠**：2 位不同的同学附照片确认（且确认多于反对）后生效；2 人反对则驳回；14 天没结果自动过期。
+- **新增店家、推荐菜、改价格、新增或修改优惠**：附照片提交即生效。
+- **删除推荐菜、取消优惠**：2 位不同的同学附照片确认（且确认多于反对）后生效；2 人反对则驳回；14 天没结果自动过期。
 - 同一个人对同一提案只能投一票，同一张照片不能在同一提案里重复使用；每人每天最多提交 10 个提案、投 30 票。
 
 ## 借鉴区块链的部分
@@ -52,8 +55,8 @@ We believe **the most reliable information comes from open rules, public evidenc
 
 | 区块链 | 这里 |
 |---|---|
-| 共识才能写入 | 取消优惠需要 2 人附证据确认，其它变更附证据即生效（`proposal_threshold`），逻辑在数据库函数 `cast_vote` 里原子执行 |
-| 不可篡改的账本 | 店家、优惠、提案、投票的每次变化都由触发器写入 `ledger` 表；只能追加，每条带上一条的哈希 |
+| 共识才能写入 | 删除推荐菜或优惠需要 2 人附证据确认，其它变更附证据即生效（`proposal_threshold`），逻辑在数据库函数 `cast_vote` 里原子执行 |
+| 不可篡改的账本 | 店家、推荐菜、优惠、提案、投票的每次变化都由触发器写入 `ledger` 表；只能追加，每条带上一条的哈希 |
 | 公开可验证 | `/ledger` 页面在浏览器里重新计算整条哈希链；也可以下载 JSON 自己验证：`hash = sha256(prev_hash + "\n" + body)` |
 
 ## 架构
@@ -72,7 +75,7 @@ We believe **the most reliable information comes from open rules, public evidenc
 ## 第一次设置
 
 1. 在 [supabase.com](https://supabase.com) 免费新建项目
-2. **SQL Editor**：运行 `supabase/schema.sql`（会自动创建 `evidence` 存储桶）。不需要导入任何初始数据，店家和优惠都由用户提交
+2. **SQL Editor**：运行 `supabase/schema.sql`（会自动创建 `evidence` 存储桶）。不需要导入任何初始数据，店家、推荐菜和优惠都由用户提交
 3. **Authentication → URL Configuration**：把 Site URL 设为你的网址（本地开发是 `http://localhost:3000`），登录邮件里的链接会跳回这里
 4. （可选）在 [console.anthropic.com](https://console.anthropic.com) 创建 API key，开启照片的 AI 检查
 5. 复制 `.env.example` 为 `.env.local` 并填好
