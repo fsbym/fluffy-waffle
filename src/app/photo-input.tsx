@@ -46,12 +46,12 @@ export default function PhotoInput({ onChange, label = "照片证据", hint = "�
         />
       </div>
       <style jsx>{`
-        .photo { display: flex; flex-direction: column; gap: 5px; color: #59625a; font-size: 12px; }
-        em { font-style: normal; color: #a1a69f; }
-        .drop { position: relative; height: 120px; display: grid; place-items: center; overflow: hidden; border: 1.5px dashed #cfd3c8; border-radius: 12px; background: #fafaf7; cursor: pointer; }
-        .drop:hover { border-color: #315f49; }
+        .photo { display: flex; flex-direction: column; gap: 5px; color: var(--ink-2); font-size: 12px; }
+        em { font-style: normal; color: var(--muted); }
+        .drop { position: relative; height: 120px; display: grid; place-items: center; overflow: hidden; border: 1.5px dashed var(--line-strong); border-radius: 12px; background: var(--bg); cursor: pointer; }
+        .drop:hover { border-color: var(--brand); }
         .drop img { width: 100%; height: 100%; object-fit: contain; }
-        .placeholder { color: #7d867d; font-size: 14px; }
+        .placeholder { color: var(--muted); font-size: 14px; }
         input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
       `}</style>
     </label>

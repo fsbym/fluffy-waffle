@@ -103,18 +103,18 @@ export default function LedgerPage() {
         .ledger { max-width: 860px; margin: 0 auto; padding: 24px 20px 60px; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
         header strong { display: block; font-size: 20px; }
-        header span, .muted { color: #8b9288; font-size: 13px; }
-        a, button { color: #315f49; }
+        header span, .muted { color: var(--muted); font-size: 13px; }
+        a, button { color: var(--brand-text); }
         button { padding: 0; border: 0; background: none; font-size: 13px; text-decoration: underline; cursor: pointer; }
-        .explain { padding: 16px; border: 1px solid #e6e3da; border-radius: 14px; background: #fff; font-size: 14px; line-height: 1.6; }
+        .explain { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; font-size: 14px; line-height: 1.6; }
         .explain p { margin: 0 0 8px; }
-        .good { color: #2f6a4f; font-weight: 700; }
-        .bad { color: #b4492a; font-weight: 700; }
-        code { padding: 1px 4px; border-radius: 4px; background: #f3f2ee; font-size: 12px; }
+        .good { display: inline-block; padding: 4px 10px; border-radius: 8px; background: var(--accent); color: var(--ink); font-weight: 700; }
+        .bad { color: var(--brand-text); font-weight: 700; }
+        code { padding: 1px 4px; border-radius: 4px; background: var(--surface-2); font-size: 12px; }
         .entries { margin: 18px 0 0; padding: 0; list-style: none; }
-        .entries li { display: flex; gap: 12px; padding: 10px 4px; border-bottom: 1px solid #ecebe5; font-size: 13px; }
-        .seq { flex: 0 0 48px; color: #a1a69f; font-variant-numeric: tabular-nums; }
-        .meta { margin-top: 3px; color: #8b9288; font-size: 12px; }
+        .entries li { display: flex; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .seq { flex: 0 0 48px; color: var(--muted); font-variant-numeric: tabular-nums; }
+        .meta { margin-top: 3px; color: var(--muted); font-size: 12px; }
       `}</style>
     </main>
   );

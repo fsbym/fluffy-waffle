@@ -168,7 +168,7 @@ export default function Home() {
             {loadState === "ready" && filtered.map((item) => (
               <article key={item.id} className={`restaurant-card ${selected?.id === item.id ? "selected" : ""}`} onMouseEnter={() => setSelectedId(item.id)}>
                 <button className="card-main" type="button" onClick={() => openDetail(item.id)} aria-label={`查看 ${item.name} 的详情`}>
-                  <div className="food-thumb" style={{ background: item.color }}><span>{item.emoji}</span></div>
+                  <div className="food-thumb"><span>{item.emoji}</span></div>
                   <div className="card-info">
                     <div className="name-row"><h2>{item.name}</h2>{item.rating !== null && <span className="rating">★ {item.rating.toFixed(1)}</span>}</div>
                     <p className="meta">
@@ -213,7 +213,7 @@ export default function Home() {
           <MapView restaurants={filtered} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
           {selected && (
             <div className="map-preview" role="button" tabIndex={0} onClick={() => openDetail(selected.id)} onKeyDown={(e) => { if (e.key === "Enter") openDetail(selected.id); }} aria-label={`查看 ${selected.name} 的详情`}>
-              <div className="preview-thumb" style={{ background: selected.color }}><span>{selected.emoji}</span></div>
+              <div className="preview-thumb"><span>{selected.emoji}</span></div>
               <div className="preview-info">
                 <div className="preview-name"><h3>{selected.name}</h3>{selected.rating !== null && <span>★ {selected.rating.toFixed(1)}</span>}</div>
                 <p>{selected.address}</p>
@@ -258,77 +258,77 @@ export default function Home() {
 
       <style jsx>{`
         .app-shell { height: 100vh; min-height: 680px; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { height: 82px; flex: 0 0 82px; display: grid; grid-template-columns: 250px minmax(240px, 480px) auto; justify-content: space-between; align-items: center; gap: 24px; padding: 0 36px; background: #fff; border-bottom: 1px solid #e8e5dc; z-index: 10; }
+        .topbar { height: 82px; flex: 0 0 82px; display: grid; grid-template-columns: 250px minmax(240px, 480px) auto; justify-content: space-between; align-items: center; gap: 24px; padding: 0 36px; background: #fff; border-bottom: 1px solid var(--line); z-index: 10; }
         .brand { display: flex; align-items: center; gap: 12px; }
-        .brand-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px 14px 14px 5px; background: #315f49; color: #fff; font-size: 21px; font-weight: 800; transform: rotate(-3deg); }
+        .brand-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px 14px 14px 5px; background: var(--brand); color: #fff; font-size: 21px; font-weight: 800; transform: rotate(-3deg); box-shadow: 3px 3px 0 var(--accent); }
         .brand strong, .brand span { display: block; }
         .brand strong { font-size: 17px; letter-spacing: 1px; }
-        .brand span { margin-top: 2px; color: #899087; font-size: 12px; }
-        .search-wrap { height: 48px; display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 15px; border: 1px solid #dfdfd7; border-radius: 14px; background: #fafaf7; }
-        .search-icon { width: 19px; height: 19px; flex: 0 0 19px; color: #7d867d; }
+        .brand span { margin-top: 2px; color: var(--muted); font-size: 12px; }
+        .search-wrap { height: 48px; display: flex; align-items: center; gap: 10px; padding: 5px 6px 5px 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+        .search-icon { width: 19px; height: 19px; flex: 0 0 19px; color: var(--muted); }
         .search-wrap { padding-right: 15px; }
-        .search-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #26352d; font-size: 14px; }
-        .search-wrap input::placeholder { color: #a1a69f; }
+        .search-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 14px; }
+        .search-wrap input::placeholder { color: var(--muted); }
         .top-actions { justify-self: end; display: flex; align-items: center; gap: 8px; }
-        .ghost-button { height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid #e3e1d8; border-radius: 12px; background: #fff; color: #4a544c; font-size: 13px; cursor: pointer; white-space: nowrap; }
-        .ghost-button:hover { border-color: #b9cbbd; }
-        .badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #df7a44; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
-        .more-hint { position: absolute; right: 14px; bottom: 12px; color: #a1a69f; font-size: 11px; pointer-events: none; }
-        .restaurant-card:hover .more-hint { color: #315f49; }
-        .preview-more { flex: 0 0 auto; color: #315f49; font-size: 26px; padding: 0 6px; }
+        .ghost-button { height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink-2); font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .ghost-button:hover { border-color: var(--brand); }
+        .badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: var(--ink); font-size: 11px; font-weight: 800; line-height: 18px; text-align: center; }
+        .more-hint { position: absolute; right: 14px; bottom: 12px; color: var(--muted); font-size: 11px; pointer-events: none; }
+        .restaurant-card:hover .more-hint { color: var(--brand-text); }
+        .preview-more { flex: 0 0 auto; color: var(--brand); font-size: 26px; padding: 0 6px; }
         .map-preview { cursor: pointer; }
-        .map-preview:hover { box-shadow: 0 16px 42px rgba(72,82,68,.24); }
-        .data-note :global(a) { color: #315f49; }
-        .submit-button { height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-        .submit-button:hover { background: #284f3c; }
+        .map-preview:hover { box-shadow: 0 16px 42px rgba(var(--shadow), .24); }
+        .data-note :global(a) { color: var(--brand-text); font-weight: 700; }
+        .submit-button { height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .submit-button:hover { background: var(--brand-dark); }
         .brand > div { min-width: 0; }
         .fab { display: none; }
         .content { min-height: 0; flex: 1; display: grid; grid-template-columns: 430px minmax(0, 1fr); }
-        .list-panel { min-height: 0; display: flex; flex-direction: column; padding: 28px 24px 20px 36px; background: #fbfaf6; border-right: 1px solid #e5e3da; }
+        .list-panel { min-height: 0; display: flex; flex-direction: column; padding: 28px 24px 20px 36px; background: var(--bg); border-right: 1px solid var(--line); }
         .list-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
-        .list-heading p { margin: 0 0 4px; color: #8b9288; font-size: 12px; }
+        .list-heading p { margin: 0 0 4px; color: var(--muted); font-size: 12px; }
         .list-heading h1 { margin: 0; font-size: 23px; line-height: 1.2; }
-        .result-count { margin-bottom: 2px; color: #8d948a; font-size: 12px; }
+        .result-count { margin-bottom: 2px; color: var(--muted); font-size: 12px; }
         .category-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-        .category-list button { height: 34px; padding: 0 13px; border: 1px solid #e2e1d8; border-radius: 17px; background: #fff; color: #737a72; font-size: 12px; cursor: pointer; }
-        .category-list button.active { border-color: #315f49; background: #315f49; color: #fff; }
-        .data-note { margin: 10px 0 0; color: #a1a69f; font-size: 11px; }
-        .retry { margin-left: 8px; border: 0; background: none; color: #315f49; text-decoration: underline; cursor: pointer; }
+        .category-list button { height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 17px; background: #fff; color: var(--muted); font-size: 12px; cursor: pointer; }
+        .category-list button.active { border-color: var(--brand); background: var(--brand); color: #fff; }
+        .data-note { margin: 10px 0 0; color: var(--muted); font-size: 11px; }
+        .retry { margin-left: 8px; border: 0; background: none; color: var(--brand-text); text-decoration: underline; cursor: pointer; }
         .restaurant-list { min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
-        .restaurant-card { position: relative; flex: 0 0 auto; min-height: 112px; display: flex; align-items: stretch; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
-        .restaurant-card.selected { border-color: #b9cbbd; box-shadow: 0 8px 24px rgba(47, 106, 79, .09); }
+        .restaurant-card { position: relative; flex: 0 0 auto; min-height: 112px; display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
+        .restaurant-card.selected { border-color: var(--brand); box-shadow: 0 8px 24px rgba(var(--shadow), .09); }
         .card-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 13px; padding: 10px 42px 30px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
-        .food-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; overflow: hidden; border-radius: 10px; }
-        .food-thumb span { font-size: 44px; filter: drop-shadow(0 5px 5px rgba(70,53,40,.12)); }
+        .food-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; overflow: hidden; border-radius: 10px;  background: var(--accent-soft); }
+        .food-thumb span { font-size: 44px; filter: drop-shadow(0 5px 5px rgba(var(--shadow), .12)); }
         .card-info { min-width: 0; }
         .name-row { display: flex; align-items: center; gap: 8px; }
         .name-row h2 { overflow: hidden; margin: 0; font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
-        .rating { color: #de7a43; font-size: 11px; font-weight: 700; white-space: nowrap; }
-        .meta { margin: 6px 0 8px; color: #969b94; font-size: 11px; }
-        .meta span { margin: 0 3px; color: #c7c9c3; }
+        .rating { color: var(--brand-text); font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .meta { margin: 6px 0 8px; color: var(--muted); font-size: 11px; }
+        .meta span { margin: 0 3px; color: var(--line-strong); }
         .tags { display: flex; flex-wrap: wrap; gap: 5px; }
-        .dishes { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 8px; color: #4a544c; font-size: 12px; }
-        .dishes b { color: #c86a3d; font-weight: 700; }
-        .dishes .more { color: #a1a69f; }
-        .preview-info strong.dish-chip { background: #f3efe6; color: #4a544c; }
-        .discount-tag, .coupon-tag { display: inline-flex; min-height: 21px; align-items: center; padding: 0 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; font-weight: 700; }
-        .coupon-tag { background: #edf3e9; color: #557251; }
-        .map-link { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #e7e7df; border-radius: 8px; color: #738076; }
+        .dishes { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 8px; color: var(--ink-2); font-size: 12px; }
+        .dishes b { color: var(--brand-text); font-weight: 700; }
+        .dishes .more { color: var(--muted); }
+        .preview-info strong.dish-chip { background: var(--surface-2); color: var(--ink-2); }
+        .discount-tag, .coupon-tag { display: inline-flex; min-height: 21px; align-items: center; padding: 0 7px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-text); font-size: 10px; font-weight: 700; }
+        .coupon-tag { background: var(--accent-soft); color: var(--ink); }
+        .map-link { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); }
         .map-link svg { width: 16px; }
-        .empty-state { height: 120px; display: grid; place-items: center; color: #969b94; font-size: 13px; }
+        .empty-state { height: 120px; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
         .empty-state.first { height: auto; gap: 6px; padding: 32px 12px; text-align: center; line-height: 1.6; }
         .empty-state.first p { margin: 0; }
         .empty-state.first button { margin-top: 10px; }
-        .map-panel { position: relative; overflow: hidden; background: #edf0e7; }
-        .map-preview { position: absolute; z-index: 600; right: 26px; bottom: 24px; width: 330px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid rgba(58,78,64,.08); border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(72,82,68,.16); backdrop-filter: blur(8px); }
-        .preview-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; border-radius: 10px; }
+        .map-panel { position: relative; overflow: hidden; background: var(--surface-2); }
+        .map-preview { position: absolute; z-index: 600; right: 26px; bottom: 24px; width: 330px; height: 112px; display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid rgba(var(--shadow), .08); border-radius: 15px; background: rgba(255,255,255,.96); box-shadow: 0 14px 38px rgba(var(--shadow), .16); backdrop-filter: blur(8px); }
+        .preview-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; border-radius: 10px;  background: var(--accent-soft); }
         .preview-thumb span { font-size: 44px; }
         .preview-info { min-width: 0; flex: 1; }
         .preview-name { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .preview-name h3 { overflow: hidden; margin: 0; font-size: 15px; white-space: nowrap; text-overflow: ellipsis; }
-        .preview-name span { color: #d97843; font-size: 11px; font-weight: 700; }
-        .preview-info p { overflow: hidden; margin: 7px 0; color: #92988f; font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
-        .preview-info strong { display: inline-block; padding: 4px 7px; border-radius: 6px; background: #fff0e6; color: #c86a3d; font-size: 10px; }
+        .preview-name span { color: var(--brand-text); font-size: 11px; font-weight: 700; }
+        .preview-info p { overflow: hidden; margin: 7px 0; color: var(--muted); font-size: 10px; white-space: nowrap; text-overflow: ellipsis; }
+        .preview-info strong { display: inline-block; padding: 4px 7px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-text); font-size: 10px; }
         @media (max-width: 900px) {
           .topbar { grid-template-columns: 210px minmax(220px,1fr) auto; padding: 0 20px; }
           .content { grid-template-columns: 380px minmax(0,1fr); }
@@ -342,7 +342,7 @@ export default function Home() {
           .top-actions { grid-column: 2; grid-row: 1; gap: 6px; }
           .top-actions .ghost-button { height: 36px; padding: 0 10px; font-size: 12px; }
           .header-submit { display: none; }
-          .fab { position: fixed; z-index: 1100; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); display: inline-flex; align-items: center; height: 50px; padding: 0 20px; border: 0; border-radius: 25px; background: #315f49; color: #fff; font-size: 15px; font-weight: 700; box-shadow: 0 10px 24px rgba(31, 60, 45, .35); cursor: pointer; }
+          .fab { position: fixed; z-index: 1100; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); display: inline-flex; align-items: center; height: 50px; padding: 0 20px; border: 0; border-radius: 25px; background: var(--brand); color: #fff; font-size: 15px; font-weight: 700; box-shadow: 0 10px 24px rgba(var(--shadow), .35); cursor: pointer; }
           .fab:active { transform: scale(.97); }
           .search-wrap { grid-column: 1/-1; grid-row: 2; }
           .content { display: flex; flex-direction: column-reverse; }
