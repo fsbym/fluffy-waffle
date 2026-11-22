@@ -189,7 +189,7 @@ export default function Home() {
             ))}
             {loadState === "ready" && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
-          <p className="data-note">优惠由同学们共同维护：附照片提交，3 人确认即生效。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
+          <p className="data-note">优惠由同学们共同维护：附照片新增即生效，取消需 2 人确认、修改需 3 人确认。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
         </aside>
 
         <section className="map-panel" aria-label="美食地图">

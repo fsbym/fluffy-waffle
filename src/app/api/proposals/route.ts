@@ -2,7 +2,6 @@ import { connection } from "next/server";
 import { checkEvidence, deletePhoto, readPhoto, storePhoto } from "@/lib/evidence";
 import { listProposals, parseProposal, rpcErrorResponse } from "@/lib/proposals";
 import { db } from "@/lib/supabase";
-import { CONFIRM_THRESHOLD } from "@/lib/types";
 import { currentUser, loginRequired } from "@/lib/user-auth";
 import { errorResponse } from "@/lib/validate";
 
@@ -42,7 +41,6 @@ export async function POST(request: Request) {
       p_evidence_sha256: photo.sha256,
       p_ai_verdict: check.verdict,
       p_ai_reason: check.reason,
-      p_threshold: CONFIRM_THRESHOLD,
     });
     if (error) {
       await deletePhoto(path);

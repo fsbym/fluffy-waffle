@@ -14,7 +14,7 @@
 
 我们借用了区块链最珍贵的几个想法，但没有真的上链：
 
-- **共识，而不是权威。** 一条信息能不能上地图，不由管理员一个人说了算，而是要 3 位同学各自拿出照片证据来确认。你也可以反对，同样要拿出证据。
+- **共识，而不是权威。** 一条信息能不能上地图，不由管理员一个人说了算，而是要同学们各自拿出照片证据来确认：取消一条优惠要 2 个人，修改优惠或新增店家要 3 个人；新增优惠只要附上照片就能立刻生效，出错了大家再一起取消。你也可以反对，同样要拿出证据。
 - **历史不可篡改。** 每一次新增、修改、取消、投票，都会写进一本只能追加的公开账本。每条记录都带着上一条的哈希值，环环相扣：谁要是偷偷改了过去，链条就会断开。
 - **不用信任，可以验证。** 你不需要相信我们。打开 `/ledger`，你的浏览器会自己把整条链重新算一遍；也可以把账本下载下来，用任何语言自己验证。
 - **透明。** 证据照片、投票过程、谁在什么时候改了什么，全部公开。管理员也能撤销违规内容，但这个操作同样会被记进账本，所有人都看得到。
@@ -29,7 +29,7 @@
 
 We borrow the most valuable ideas from blockchains, without putting anything on an actual chain:
 
-- **Consensus over authority.** No single admin decides what goes on the map. A change takes effect only after 3 students each confirm it with their own photo evidence. You can also object, and objections need evidence too.
+- **Consensus over authority.** No single admin decides what goes on the map. Changes take effect only after students confirm them with their own photo evidence: 2 people to cancel a deal, 3 to change a deal or add a store. A new deal goes live as soon as someone posts it with a photo, and if it is wrong, others can cancel it together. You can also object, and objections need evidence too.
 - **History that can't be rewritten.** Every addition, change, cancellation and vote is written to an append-only public ledger. Each entry carries the hash of the one before it, so if anyone quietly edits the past, the chain breaks.
 - **Don't trust, verify.** You don't have to take our word for it. Open `/ledger` and your own browser recomputes the whole chain. You can also download the ledger and check it yourself in any language.
 - **Transparency.** Evidence photos, votes, and who changed what and when are all public. Admins can remove abusive content, but that action is recorded in the ledger too, for everyone to see.
@@ -42,7 +42,10 @@ We believe **the most reliable information comes from open rules, public evidenc
 
 - 任何人用邮箱登录后（不需要密码，收邮件点链接），都可以提交变更：**新店家 / 新增优惠 / 优惠变了 / 优惠取消了**。
 - 每次提交和每一票都**必须附照片证据**（店内告示、菜单、收据、饭团等 App 截图）。照片公开给所有人查看。（可选）配置 Claude API key 后，照片会先经过 AI 检查：和这家店无关、或者和你的说法相反的照片会被拒绝。
-- **3 位不同的同学附照片确认**（且确认多于反对）后，变更自动生效；3 人反对则驳回；14 天没结果自动过期。
+- **新增优惠**：附照片提交即生效。
+- **取消优惠**：2 位不同的同学附照片确认（且确认多于反对）后生效；2 人反对则驳回。
+- **修改优惠、新增店家**：3 位不同的同学附照片确认（且确认多于反对）后生效；3 人反对则驳回。
+- 14 天没结果的提案自动过期。
 - 同一个人对同一提案只能投一票，同一张照片不能在同一提案里重复使用；每人每天最多提交 10 个提案、投 30 票。
 
 ## 借鉴区块链的部分
@@ -51,7 +54,7 @@ We believe **the most reliable information comes from open rules, public evidenc
 
 | 区块链 | 这里 |
 |---|---|
-| 共识才能写入 | 3 人附证据确认才生效，逻辑在数据库函数 `cast_vote` 里原子执行 |
+| 共识才能写入 | 按提案类型需要 1～3 人附证据确认（`proposal_threshold`），逻辑在数据库函数 `cast_vote` 里原子执行 |
 | 不可篡改的账本 | 店家、优惠、提案、投票的每次变化都由触发器写入 `ledger` 表；只能追加，每条带上一条的哈希 |
 | 公开可验证 | `/ledger` 页面在浏览器里重新计算整条哈希链；也可以下载 JSON 自己验证：`hash = sha256(prev_hash + "\n" + body)` |
 
