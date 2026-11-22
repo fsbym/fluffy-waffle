@@ -19,7 +19,7 @@
 - **不用信任，可以验证。** 你不需要相信我们。打开 `/ledger`，你的浏览器会自己把整条链重新算一遍；也可以把账本下载下来，用任何语言自己验证。
 - **透明。** 证据照片、投票过程、谁在什么时候改了什么，全部公开。管理员也能撤销违规内容，但这个操作同样会被记进账本，所有人都看得到。
 
-**代码也是公开的。** 整个项目的代码都放在 GitHub 上：怎么计票、怎么记账、数据库有哪些权限，每一行都可以检查。觉得哪里不对，欢迎提 issue 或 pull request；想给自己的学校做一份，也可以直接 fork 一份拿去改。
+**代码也是公开的。** 整个项目的代码都放在 GitHub 上：怎么计票、怎么记账、数据库有哪些权限，每一行都可以检查。觉得哪里不对，欢迎提 issue 或 pull request；想给自己的学校做一份，也可以直接 fork 一份拿去改。项目采用 [MIT 许可证](LICENSE)，可以自由使用、修改和分发，只需保留版权声明。
 
 我们相信：**最可靠的信息，来自开放的规则、公开的证据和每一个愿意动手核实的人。**
 
@@ -34,7 +34,7 @@ We borrow the most valuable ideas from blockchains, without putting anything on 
 - **Don't trust, verify.** You don't have to take our word for it. Open `/ledger` and your own browser recomputes the whole chain. You can also download the ledger and check it yourself in any language.
 - **Transparency.** Evidence photos, votes, and who changed what and when are all public. Admins can remove abusive content, but that action is recorded in the ledger too, for everyone to see.
 
-**The code is public too.** The whole project is on GitHub: how votes are counted, how the ledger is written, what the database allows. Every line is open to inspection. If something looks wrong, open an issue or a pull request. If you want a map like this for your own school, fork it and make it yours.
+**The code is public too.** The whole project is on GitHub: how votes are counted, how the ledger is written, what the database allows. Every line is open to inspection. If something looks wrong, open an issue or a pull request. If you want a map like this for your own school, fork it and make it yours. The project is released under the [MIT License](LICENSE): use, modify and share it freely, as long as you keep the copyright notice.
 
 We believe **the most reliable information comes from open rules, public evidence, and everyone willing to check for themselves.**
 
@@ -89,3 +89,10 @@ npm run dev
 部署到 Vercel 时，把 `.env.example` 里的变量填进项目的 Environment Variables，并把 Supabase 的 Site URL 改成正式网址。
 
 > 初始数据里的折扣和饭团券是示例，上线后请同学们用提案改成真实信息。
+
+## 许可证 · License
+
+[MIT](LICENSE) © 2026 fsbym
+
+地图数据 © [OpenStreetMap](https://www.openstreetmap.org/copyright) 贡献者，采用 ODbL 许可。
+Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, available under the ODbL.
