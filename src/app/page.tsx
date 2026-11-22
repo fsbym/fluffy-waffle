@@ -1,8 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import type { Deal, Restaurant } from "@/lib/types";
-import SubmitDealDialog from "./submit-deal";
+import { useAuth } from "./auth";
+import LoginDialog from "./login-dialog";
+import ProposalDialog from "./proposal-dialog";
+import ProposalsPanel from "./proposals-panel";
 
 const mapsUrl = (item: Pick<Restaurant, "name" | "address">) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.name}, ${item.address}`)}`;
@@ -28,7 +32,10 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [dealsOnly, setDealsOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [submitOpen, setSubmitOpen] = useState(false);
+  const [dialog, setDialog] = useState<null | "login" | "propose" | "proposals">(null);
+  const [proposeFor, setProposeFor] = useState<number | null>(null);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const { email, signOut } = useAuth();
 
   const load = useCallback(async () => {
     setLoadState("loading");
@@ -41,6 +48,32 @@ export default function Home() {
       setLoadState("error");
     }
   }, []);
+
+  const loadPending = useCallback(async () => {
+    try {
+      const response = await fetch("/api/proposals", { cache: "no-store" });
+      if (response.ok) setPendingCount((await response.json()).length);
+    } catch {
+      // 待确认数量只是提示，失败就不显示
+    }
+  }, []);
+
+  const refresh = useCallback(() => {
+    void load();
+    void loadPending();
+  }, [load, loadPending]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadPending();
+  }, [loadPending]);
+
+  /** 需要登录的操作：没登录先弹登录框 */
+  const propose = (restaurantId: number | null) => {
+    if (!email) { setDialog("login"); return; }
+    setProposeFor(restaurantId);
+    setDialog("propose");
+  };
 
   useEffect(() => {
     // 首次加载时从后端读取店家与折扣数据
@@ -75,7 +108,17 @@ export default function Home() {
           <span className="search-icon"><SearchIcon /></span>
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索店家、地址或折扣" aria-label="搜索店家、地址或折扣" />
         </div>
-        <button className="submit-button" type="button" onClick={() => setSubmitOpen(true)}>＋ 提交折扣</button>
+        <div className="top-actions">
+          <button className="ghost-button" type="button" onClick={() => setDialog("proposals")}>
+            待确认{pendingCount ? <span className="badge">{pendingCount}</span> : null}
+          </button>
+          <button className="submit-button" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 提交优惠</button>
+          {email ? (
+            <button className="ghost-button account" type="button" onClick={() => void signOut()} title={`已登录：${email}（点击退出）`}>退出</button>
+          ) : (
+            <button className="ghost-button" type="button" onClick={() => setDialog("login")}>登录</button>
+          )}
+        </div>
       </header>
 
       <section className="content">
@@ -115,12 +158,13 @@ export default function Home() {
                     </div>
                   </div>
                 </button>
+                <button className="report-link" type="button" onClick={() => propose(item.id)}>报告变化</button>
                 <a className="map-link" href={mapsUrl(item)} target="_blank" rel="noopener noreferrer" aria-label={`在 Google 地图查看 ${item.name}`}><MapPinIcon /></a>
               </article>
             ))}
             {loadState === "ready" && filtered.length === 0 && <div className="empty-state">没有找到符合的店家</div>}
           </div>
-          <p className="data-note">优惠信息由管理员和同学维护，以店家实际公布为准。</p>
+          <p className="data-note">优惠由同学们共同维护：附照片提交，3 人确认即生效。所有改动都记录在<Link href="/ledger">公开账本</Link>里。</p>
         </aside>
 
         <section className="map-panel" aria-label="美食地图">
@@ -152,11 +196,17 @@ export default function Home() {
         </section>
       </section>
 
-      {submitOpen && <SubmitDealDialog restaurants={restaurants} defaultRestaurantId={selected?.id ?? null} onClose={() => setSubmitOpen(false)} />}
+      {dialog === "login" && <LoginDialog onClose={() => setDialog(null)} />}
+      {dialog === "propose" && (
+        <ProposalDialog restaurants={restaurants} restaurantId={proposeFor} onClose={() => setDialog(null)} onSubmitted={refresh} />
+      )}
+      {dialog === "proposals" && (
+        <ProposalsPanel onClose={() => setDialog(null)} onChanged={refresh} onNeedLogin={() => setDialog("login")} />
+      )}
 
       <style jsx>{`
         .app-shell { height: 100vh; min-height: 680px; display: flex; flex-direction: column; overflow: hidden; }
-        .topbar { height: 82px; flex: 0 0 82px; display: grid; grid-template-columns: 250px minmax(280px, 520px) 250px; justify-content: space-between; align-items: center; gap: 24px; padding: 0 36px; background: #fff; border-bottom: 1px solid #e8e5dc; z-index: 10; }
+        .topbar { height: 82px; flex: 0 0 82px; display: grid; grid-template-columns: 250px minmax(240px, 480px) auto; justify-content: space-between; align-items: center; gap: 24px; padding: 0 36px; background: #fff; border-bottom: 1px solid #e8e5dc; z-index: 10; }
         .brand { display: flex; align-items: center; gap: 12px; }
         .brand-mark { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px 14px 14px 5px; background: #315f49; color: #fff; font-size: 21px; font-weight: 800; transform: rotate(-3deg); }
         .brand strong, .brand span { display: block; }
@@ -167,7 +217,14 @@ export default function Home() {
         .search-wrap { padding-right: 15px; }
         .search-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #26352d; font-size: 14px; }
         .search-wrap input::placeholder { color: #a1a69f; }
-        .submit-button { justify-self: end; height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .top-actions { justify-self: end; display: flex; align-items: center; gap: 8px; }
+        .ghost-button { height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid #e3e1d8; border-radius: 12px; background: #fff; color: #4a544c; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .ghost-button:hover { border-color: #b9cbbd; }
+        .badge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #df7a44; color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+        .report-link { position: absolute; right: 10px; bottom: 10px; height: 24px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: #8b9288; font-size: 11px; cursor: pointer; }
+        .report-link:hover { background: #f3f2ee; color: #315f49; }
+        .data-note :global(a) { color: #315f49; }
+        .submit-button { height: 44px; padding: 0 16px; border: 0; border-radius: 12px; background: #315f49; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
         .submit-button:hover { background: #284f3c; }
         .content { min-height: 0; flex: 1; display: grid; grid-template-columns: 430px minmax(0, 1fr); }
         .list-panel { min-height: 0; display: flex; flex-direction: column; padding: 28px 24px 20px 36px; background: #fbfaf6; border-right: 1px solid #e5e3da; }
@@ -183,7 +240,7 @@ export default function Home() {
         .restaurant-list { min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
         .restaurant-card { position: relative; flex: 0 0 auto; min-height: 112px; display: flex; align-items: stretch; border: 1px solid #ebe8df; border-radius: 14px; background: #fff; transition: border-color .18s, box-shadow .18s; }
         .restaurant-card.selected { border-color: #b9cbbd; box-shadow: 0 8px 24px rgba(47, 106, 79, .09); }
-        .card-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 13px; padding: 10px 42px 10px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+        .card-main { min-width: 0; flex: 1; display: flex; align-items: center; gap: 13px; padding: 10px 42px 30px 10px; border: 0; background: transparent; text-align: left; cursor: pointer; }
         .food-thumb { width: 92px; height: 92px; flex: 0 0 92px; display: grid; place-items: center; overflow: hidden; border-radius: 10px; }
         .food-thumb span { font-size: 44px; filter: drop-shadow(0 5px 5px rgba(70,53,40,.12)); }
         .card-info { min-width: 0; }
@@ -231,15 +288,18 @@ export default function Home() {
         }
         @media (max-width: 680px) {
           .app-shell { height: auto; min-height: 100vh; overflow: visible; }
-          .topbar { height: auto; min-height: 72px; grid-template-columns: 1fr auto; gap: 10px; padding: 12px 14px; }
-          .brand { grid-column: 1; } .brand-mark { width: 42px; height: 42px; }
-          .submit-button { grid-column: 2; grid-row: 1; padding: 0 12px; }
+          .topbar { flex: none; height: auto; min-height: 72px; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 12px 14px; }
+          .brand { grid-column: 1; min-width: 0; gap: 8px; } .brand-mark { width: 38px; height: 38px; flex: 0 0 38px; font-size: 18px; }
+          .brand span { display: none; } .brand strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .top-actions { grid-column: 2; grid-row: 1; gap: 6px; }
+          .top-actions .submit-button, .top-actions .ghost-button { height: 38px; padding: 0 10px; font-size: 12px; }
           .search-wrap { grid-column: 1/-1; grid-row: 2; }
           .content { display: flex; flex-direction: column-reverse; }
           .map-panel { height: 340px; flex: 0 0 340px; }
           .list-panel { min-height: 430px; padding: 20px 14px; }
-          .restaurant-list { max-height: 520px; }
-          .map-preview { right: 12px; bottom: 12px; width: calc(100% - 24px); }
+          .restaurant-list { max-height: none; overflow: visible; }
+          .map-preview { right: 12px; bottom: 12px; width: calc(100% - 24px); height: 84px; }
+          .preview-thumb { width: 64px; height: 64px; flex-basis: 64px; } .preview-thumb span { font-size: 32px; }
         }
       `}</style>
     </main>

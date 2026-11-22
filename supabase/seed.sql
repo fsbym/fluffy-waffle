@@ -1,3 +1,6 @@
+-- 让账本把这批初始数据记成 seed 写入的
+select set_config('app.actor', 'seed', false);
+
 -- 初始店家数据（多大 St. George 校区周边）。
 -- 折扣与饭团券为示例，请在 /admin 后台改成真实信息。
 with r as (

@@ -1,7 +1,14 @@
 -- 校园美食地图 数据库结构
--- 在 Supabase 控制台 → SQL Editor 中运行本文件，再运行 seed.sql。
--- 所有表都开启 RLS 且不设公开策略：浏览器无法直接读写，
--- 只能经过 Next.js 后端（使用 secret key）访问。
+-- 在 Supabase 控制台 → SQL Editor 中运行本文件，再运行 seed.sql。本文件可以重复运行。
+--
+-- 设计：
+-- * 同学提交「提案」（新增店家 / 新增优惠 / 修改优惠 / 取消优惠），每票都要附照片证据。
+-- * 3 个不同的人确认（且确认多于反对）后，提案自动生效；3 人反对则驳回；14 天没结果自动过期。
+-- * restaurants / deals / proposals / votes 的每一次变化都由触发器写进 ledger（账本）：
+--   只能追加、不能修改，每条记录带上一条的哈希，任何人都能下载下来验证历史没被偷偷改过。
+-- * 所有表都开启 RLS 且不设公开策略：浏览器无法直接读写，只能经过 Next.js 后端（secret key）。
+
+-- ───────────── 表 ─────────────
 
 create table if not exists public.restaurants (
   id           bigint generated always as identity primary key,
@@ -23,9 +30,9 @@ create table if not exists public.deals (
   restaurant_id    bigint not null references public.restaurants(id) on delete cascade,
   kind             text not null check (kind in ('discount', 'coupon')),
   title            text not null,
-  source           text,                       -- 例如：店家、饭团、Uber Eats、用户提交
+  source           text,
   starts_on        date,
-  ends_on          date,                       -- 过期后前台自动隐藏
+  ends_on          date,
   last_verified_on date not null default current_date,
   is_active        boolean not null default true,
   created_at       timestamptz not null default now(),
@@ -33,19 +40,85 @@ create table if not exists public.deals (
 );
 create index if not exists deals_restaurant_id_idx on public.deals (restaurant_id);
 
-create table if not exists public.submissions (
-  id              bigint generated always as identity primary key,
-  restaurant_id   bigint references public.restaurants(id) on delete set null,
-  restaurant_name text not null,
-  kind            text not null check (kind in ('discount', 'coupon')),
-  title           text not null,
-  source          text,
-  ends_on         date,
-  note            text,
-  status          text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
-  created_at      timestamptz not null default now()
+create table if not exists public.proposals (
+  id            bigint generated always as identity primary key,
+  kind          text not null check (kind in ('add_restaurant', 'add_deal', 'update_deal', 'remove_deal')),
+  restaurant_id bigint references public.restaurants(id) on delete cascade,
+  deal_id       bigint references public.deals(id) on delete cascade,
+  payload       jsonb not null default '{}'::jsonb,
+  claim         text not null,               -- 人类可读的主张，例如「Kinton Ramen 的学生 9 折已经取消」
+  created_by    uuid not null,               -- Supabase Auth 用户 id（匿名化展示）
+  status        text not null default 'pending'
+                check (status in ('pending', 'applied', 'rejected', 'expired', 'cancelled')),
+  created_at    timestamptz not null default now(),
+  expires_at    timestamptz not null default now() + interval '14 days',
+  resolved_at   timestamptz,
+  constraint proposals_target_check check (
+    (kind = 'add_restaurant' and restaurant_id is null and deal_id is null) or
+    (kind = 'add_deal' and restaurant_id is not null and deal_id is null) or
+    (kind in ('update_deal', 'remove_deal') and deal_id is not null)
+  )
 );
-create index if not exists submissions_status_idx on public.submissions (status, created_at desc);
+create index if not exists proposals_status_idx on public.proposals (status, created_at desc);
+create index if not exists proposals_deal_idx on public.proposals (deal_id) where status = 'pending';
+
+create table if not exists public.votes (
+  id              bigint generated always as identity primary key,
+  proposal_id     bigint not null references public.proposals(id) on delete cascade,
+  user_id         uuid not null,
+  stance          text not null check (stance in ('confirm', 'reject')),
+  evidence_path   text not null,             -- Supabase Storage 中 evidence 桶里的路径
+  evidence_sha256 text not null,
+  ai_verdict      text not null,             -- supports / contradicts / unclear / unchecked
+  ai_reason       text,
+  created_at      timestamptz not null default now(),
+  constraint votes_one_per_user unique (proposal_id, user_id),
+  constraint votes_unique_evidence unique (proposal_id, evidence_sha256)
+);
+create index if not exists votes_user_idx on public.votes (user_id, created_at desc);
+
+create table if not exists public.ledger (
+  seq        bigint generated always as identity primary key,
+  prev_hash  text not null,
+  hash       text not null unique,
+  body       text not null,                  -- 被哈希的原文（JSON 字符串），验证时原样使用
+  created_at timestamptz not null default now()
+);
+
+-- ───────────── 账本 ─────────────
+
+-- hash = sha256(prev_hash + "\n" + body)，第一条的 prev_hash 是 64 个 0。
+create or replace function public.ledger_append(p_body jsonb) returns void
+language plpgsql as $$
+declare
+  v_prev text;
+  v_body text := p_body::text;
+begin
+  perform pg_advisory_xact_lock(hashtext('fluffy_waffle_ledger'));
+  select hash into v_prev from public.ledger order by seq desc limit 1;
+  v_prev := coalesce(v_prev, repeat('0', 64));
+  insert into public.ledger (prev_hash, hash, body)
+  values (v_prev, encode(sha256(convert_to(v_prev || E'\n' || v_body, 'UTF8')), 'hex'), v_body);
+end $$;
+
+create or replace function public.ledger_capture() returns trigger
+language plpgsql as $$
+begin
+  perform public.ledger_append(jsonb_build_object(
+    'table', tg_table_name,
+    'op', lower(tg_op),
+    'actor', coalesce(nullif(current_setting('app.actor', true), ''), 'admin'),
+    'at', now(),
+    'row', case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end
+  ));
+  return null;
+end $$;
+
+create or replace function public.ledger_immutable() returns trigger
+language plpgsql as $$
+begin
+  raise exception 'ledger is append-only';
+end $$;
 
 create or replace function public.set_updated_at() returns trigger
 language plpgsql as $$
@@ -61,6 +134,158 @@ drop trigger if exists deals_updated_at on public.deals;
 create trigger deals_updated_at before update on public.deals
   for each row execute function public.set_updated_at();
 
+drop trigger if exists restaurants_ledger on public.restaurants;
+create trigger restaurants_ledger after insert or update or delete on public.restaurants
+  for each row execute function public.ledger_capture();
+drop trigger if exists deals_ledger on public.deals;
+create trigger deals_ledger after insert or update or delete on public.deals
+  for each row execute function public.ledger_capture();
+drop trigger if exists proposals_ledger_insert on public.proposals;
+create trigger proposals_ledger_insert after insert on public.proposals
+  for each row execute function public.ledger_capture();
+drop trigger if exists proposals_ledger_status on public.proposals;
+create trigger proposals_ledger_status after update of status on public.proposals
+  for each row when (old.status is distinct from new.status) execute function public.ledger_capture();
+drop trigger if exists votes_ledger on public.votes;
+create trigger votes_ledger after insert on public.votes
+  for each row execute function public.ledger_capture();
+drop trigger if exists ledger_no_update on public.ledger;
+create trigger ledger_no_update before update or delete on public.ledger
+  for each row execute function public.ledger_immutable();
+
+-- ───────────── 提案与投票 ─────────────
+
+create or replace function public.apply_proposal(p public.proposals) returns void
+language plpgsql as $$
+begin
+  case p.kind
+  when 'add_restaurant' then
+    insert into public.restaurants (name, category, address, price_range, emoji)
+    values (p.payload->>'name', p.payload->>'category', p.payload->>'address',
+            nullif(p.payload->>'price_range', ''), coalesce(nullif(p.payload->>'emoji', ''), '🍽️'));
+  when 'add_deal' then
+    insert into public.deals (restaurant_id, kind, title, source, ends_on)
+    values (p.restaurant_id, p.payload->>'deal_kind', p.payload->>'title',
+            nullif(p.payload->>'source', ''), nullif(p.payload->>'ends_on', '')::date);
+  when 'update_deal' then
+    update public.deals set
+      kind = coalesce(p.payload->>'deal_kind', kind),
+      title = coalesce(p.payload->>'title', title),
+      ends_on = case when p.payload ? 'ends_on' then nullif(p.payload->>'ends_on', '')::date else ends_on end,
+      is_active = true,
+      last_verified_on = current_date
+    where id = p.deal_id;
+  when 'remove_deal' then
+    update public.deals set is_active = false, last_verified_on = current_date where id = p.deal_id;
+  end case;
+end $$;
+
+-- 投一票（附证据）。确认达到门槛且多于反对 → 生效；反对达到门槛且不少于确认 → 驳回。
+create or replace function public.cast_vote(
+  p_proposal bigint, p_user uuid, p_stance text,
+  p_evidence_path text, p_evidence_sha256 text, p_ai_verdict text, p_ai_reason text,
+  p_threshold int default 3
+) returns jsonb
+language plpgsql as $$
+declare
+  p public.proposals;
+  v_confirm int;
+  v_reject int;
+  v_recent int;
+begin
+  select * into p from public.proposals where id = p_proposal for update;
+  if not found then raise exception 'not_found'; end if;
+  if p.status <> 'pending' then raise exception 'closed'; end if;
+  if p.expires_at < now() then
+    update public.proposals set status = 'expired', resolved_at = now() where id = p.id;
+    return jsonb_build_object('id', p.id, 'status', 'expired');
+  end if;
+
+  select count(*) into v_recent from public.votes where user_id = p_user and created_at > now() - interval '1 day';
+  if v_recent >= 30 then raise exception 'rate_limited'; end if;
+
+  perform set_config('app.actor', 'user:' || p_user, true);
+  insert into public.votes (proposal_id, user_id, stance, evidence_path, evidence_sha256, ai_verdict, ai_reason)
+  values (p.id, p_user, p_stance, p_evidence_path, p_evidence_sha256, p_ai_verdict, p_ai_reason);
+
+  select count(*) filter (where stance = 'confirm'), count(*) filter (where stance = 'reject')
+    into v_confirm, v_reject
+  from public.votes where proposal_id = p.id;
+
+  if v_confirm >= p_threshold and v_confirm > v_reject then
+    perform set_config('app.actor', 'proposal:' || p.id, true);
+    perform public.apply_proposal(p);
+    update public.proposals set status = 'applied', resolved_at = now() where id = p.id;
+    -- 同一条优惠的其它待定提案已经过时
+    if p.deal_id is not null then
+      update public.proposals set status = 'expired', resolved_at = now()
+      where deal_id = p.deal_id and status = 'pending' and id <> p.id;
+    end if;
+  elsif v_reject >= p_threshold and v_reject >= v_confirm then
+    update public.proposals set status = 'rejected', resolved_at = now() where id = p.id;
+  end if;
+
+  return jsonb_build_object(
+    'id', p.id,
+    'status', (select status from public.proposals where id = p.id),
+    'confirms', v_confirm,
+    'rejects', v_reject
+  );
+end $$;
+
+-- 新建提案，提案人的证据自动算作第一票「确认」。
+create or replace function public.create_proposal(
+  p_kind text, p_restaurant_id bigint, p_deal_id bigint, p_payload jsonb, p_claim text, p_user uuid,
+  p_evidence_path text, p_evidence_sha256 text, p_ai_verdict text, p_ai_reason text,
+  p_threshold int default 3
+) returns jsonb
+language plpgsql as $$
+declare
+  v_id bigint;
+  v_recent int;
+begin
+  select count(*) into v_recent from public.proposals where created_by = p_user and created_at > now() - interval '1 day';
+  if v_recent >= 10 then raise exception 'rate_limited'; end if;
+
+  if p_deal_id is not null and exists (
+    select 1 from public.proposals where deal_id = p_deal_id and status = 'pending' and expires_at > now()
+  ) then
+    raise exception 'duplicate_pending';
+  end if;
+
+  perform set_config('app.actor', 'user:' || p_user, true);
+  insert into public.proposals (kind, restaurant_id, deal_id, payload, claim, created_by)
+  values (p_kind, p_restaurant_id, p_deal_id, coalesce(p_payload, '{}'::jsonb), p_claim, p_user)
+  returning id into v_id;
+
+  return public.cast_vote(v_id, p_user, 'confirm', p_evidence_path, p_evidence_sha256, p_ai_verdict, p_ai_reason, p_threshold);
+end $$;
+
+-- ───────────── 权限 ─────────────
+
 alter table public.restaurants enable row level security;
 alter table public.deals       enable row level security;
-alter table public.submissions enable row level security;
+alter table public.proposals   enable row level security;
+alter table public.votes       enable row level security;
+alter table public.ledger      enable row level security;
+
+-- 函数默认对所有人开放执行，必须收回：否则拿到 publishable key 的人可以直接调用 cast_vote 冒充别人投票。
+revoke execute on all functions in schema public from public;
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'anon') then
+    execute 'revoke execute on all functions in schema public from anon, authenticated';
+  end if;
+  if exists (select 1 from pg_roles where rolname = 'service_role') then
+    execute 'grant execute on all functions in schema public to service_role';
+  end if;
+end $$;
+
+-- 证据照片存放在私有的 Storage 桶里，由后端生成临时链接展示。
+do $$
+begin
+  if exists (select 1 from pg_namespace where nspname = 'storage') then
+    insert into storage.buckets (id, name, public) values ('evidence', 'evidence', false)
+    on conflict (id) do nothing;
+  end if;
+end $$;

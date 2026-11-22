@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { CATEGORIES, type Deal, type Restaurant, type Submission } from "@/lib/types";
+import { CATEGORIES, CONFIRM_THRESHOLD, type Deal, type Proposal, type Restaurant } from "@/lib/types";
 
 async function api<T = unknown>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
@@ -126,19 +126,19 @@ function Login({ onDone }: { onDone: () => void }) {
 }
 
 function Dashboard() {
-  const [tab, setTab] = useState<"restaurants" | "submissions">("restaurants");
+  const [tab, setTab] = useState<"restaurants" | "proposals">("restaurants");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
       const [r, s] = await Promise.all([
         api<Restaurant[]>("/api/admin/restaurants"),
-        api<Submission[]>("/api/admin/submissions?status=pending"),
+        api<Proposal[]>("/api/proposals"),
       ]);
       setRestaurants(r);
-      setSubmissions(s);
+      setProposals(s);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -164,7 +164,7 @@ function Dashboard() {
     <>
       <div className="tabs">
         <button type="button" className={tab === "restaurants" ? "active" : ""} onClick={() => setTab("restaurants")}>店家与优惠（{restaurants.length}）</button>
-        <button type="button" className={tab === "submissions" ? "active" : ""} onClick={() => setTab("submissions")}>待审核（{submissions.length}）</button>
+        <button type="button" className={tab === "proposals" ? "active" : ""} onClick={() => setTab("proposals")}>待确认提案（{proposals.length}）</button>
       </div>
       {error && <p className="error" role="alert">{error}</p>}
       {tab === "restaurants" ? (
@@ -174,8 +174,9 @@ function Dashboard() {
         </>
       ) : (
         <>
-          {submissions.length === 0 && <p className="muted">暂时没有待审核的提交。</p>}
-          {submissions.map((s) => <SubmissionCard key={s.id} submission={s} restaurants={restaurants} run={run} />)}
+          <p className="muted">提案由同学们投票决定，{CONFIRM_THRESHOLD} 人附照片确认即生效，不需要管理员审核。这里只用来撤销违规内容（例如照片不当、恶意刷票），撤销操作同样会记入公开账本。</p>
+          {proposals.length === 0 && <p className="muted">暂时没有待确认的提案。</p>}
+          {proposals.map((p) => <ProposalRow key={p.id} proposal={p} run={run} />)}
         </>
       )}
     </>
@@ -334,40 +335,24 @@ function DealRow({ deal, run }: { deal: Deal; run: Run }) {
   );
 }
 
-function SubmissionCard({ submission: s, restaurants, run }: { submission: Submission; restaurants: Restaurant[]; run: Run }) {
-  const [restaurantId, setRestaurantId] = useState(s.restaurant_id ? String(s.restaurant_id) : "");
-  const [title, setTitle] = useState(s.title);
-  const decide = (json: Record<string, unknown>) => run(() => api(`/api/admin/submissions/${s.id}`, { method: "PATCH", json }));
-
+function ProposalRow({ proposal: p, run }: { proposal: Proposal; run: Run }) {
   return (
     <section className="card">
       <div className="rhead">
         <div>
-          <h3>{s.kind === "coupon" ? "🎟️ " : "🏷️ "}{s.title}</h3>
-          <span className="meta">
-            {s.restaurant_name}{s.source ? ` · 来源：${s.source}` : ""}{s.ends_on ? ` · 截至 ${s.ends_on}` : ""} · 提交于 {new Date(s.created_at).toLocaleString("zh-CN")}
-          </span>
-          {s.note && <p className="muted" style={{ margin: "6px 0 0" }}>备注：{s.note}</p>}
+          <h3>{p.claim}</h3>
+          <span className="meta">确认 {p.confirms}/{CONFIRM_THRESHOLD} · 反对 {p.rejects} · 提交于 {new Date(p.created_at).toLocaleString("zh-CN")}</span>
+          <div className="actions" style={{ marginTop: 8 }}>
+            {p.votes.map((v) => (
+              <a key={v.id} href={`/api/evidence/${v.id}`} target="_blank" rel="noopener noreferrer">{v.voter} {v.stance === "confirm" ? "确认" : "反对"}的照片</a>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="grid" style={{ marginTop: 12 }}>
-        <label>归属店家
-          <select value={restaurantId} onChange={(event) => setRestaurantId(event.target.value)}>
-            <option value="">请选择…</option>
-            {restaurants.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        </label>
-        <label style={{ gridColumn: "span 2" }}>上线文字（可修改）<input value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} /></label>
-        <div className="actions">
-          <button
-            type="button"
-            className="primary"
-            disabled={!restaurantId || !title.trim()}
-            title={restaurantId ? undefined : "店家不在列表里的话，请先在「店家与优惠」里新增"}
-            onClick={() => void decide({ action: "approve", restaurant_id: Number(restaurantId), title })}
-          >通过并上线</button>
-          <button type="button" className="danger" onClick={() => void decide({ action: "reject" })}>拒绝</button>
-        </div>
+        <button
+          type="button"
+          className="danger"
+          onClick={() => { if (confirm("撤销这个提案？")) void run(() => api(`/api/admin/proposals/${p.id}`, { method: "PATCH", json: { action: "cancel" } })); }}
+        >撤销</button>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import "server-only";
 import { db, torontoToday } from "./supabase";
-import type { Deal, Restaurant, Submission } from "./types";
+import type { Deal, Restaurant } from "./types";
 import { BadRequest, date, int, kind, num, text, bool } from "./validate";
 
 const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, emoji, color, accent";
@@ -92,15 +92,4 @@ function pick<T extends Record<string, unknown>>(body: Body, fields: T, partial:
 
 function isRequiredColumn(key: string): boolean {
   return ["name", "category", "address", "title", "kind", "emoji", "color", "accent", "last_verified_on"].includes(key);
-}
-
-export async function listSubmissions(status: Submission["status"]): Promise<Submission[]> {
-  const { data, error } = await db()
-    .from("submissions")
-    .select("*")
-    .eq("status", status)
-    .order("created_at", { ascending: false })
-    .limit(200);
-  if (error) throw error;
-  return data as Submission[];
 }
