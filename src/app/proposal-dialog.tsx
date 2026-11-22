@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CATEGORIES, THRESHOLDS, type ProposalKind, type Restaurant } from "@/lib/types";
+import { THRESHOLDS, type ProposalKind, type Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import Modal from "./modal";
 import PhotoInput from "./photo-input";
@@ -23,9 +23,9 @@ const ACTIONS: { kind: ProposalKind; label: string }[] = [
   { kind: "add_restaurant", label: "新店家" },
 ];
 
-export default function ProposalDialog({ restaurants, restaurantId, initialKind = "add_deal", initialDealId = null, onClose, onSubmitted }: Props) {
+export default function ProposalDialog({ restaurants, restaurantId, initialKind, initialDealId = null, onClose, onSubmitted }: Props) {
   const { authFetch } = useAuth();
-  const [kind, setKind] = useState<ProposalKind>(initialKind);
+  const [kind, setKind] = useState<ProposalKind>(initialKind ?? (restaurants.length ? "add_deal" : "add_restaurant"));
   const [rid, setRid] = useState(restaurantId ?? restaurants[0]?.id ?? 0);
   const restaurant = restaurants.find((r) => r.id === rid);
   const deals = restaurant?.deals ?? [];
@@ -88,7 +88,7 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind 
         </p>
 
         <div className="choices" role="radiogroup" aria-label="要做什么">
-          {ACTIONS.map((a) => (
+          {ACTIONS.filter((a) => restaurants.length > 0 || a.kind === "add_restaurant").map((a) => (
             <label key={a.kind}>
               <input type="radio" name="action" checked={kind === a.kind} onChange={() => setKind(a.kind)} /> {a.label}
             </label>
@@ -115,14 +115,16 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind 
 
         {kind === "add_restaurant" && (
           <>
-            <label>店名<input name="name" required maxLength={80} placeholder="例如：Banh Mi Boys" /></label>
+            <label>店名<input name="name" required maxLength={80} placeholder="店名（英文名或中文名都可以）" /></label>
             <label>地址（会自动在地图上定位）<input name="address" required maxLength={160} placeholder="例如：392 Queen St W, Toronto, ON" /></label>
             <div className="row">
               <label>分类
-                <select name="category" defaultValue={CATEGORIES[0]}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>
+                <input name="category" required maxLength={20} list="known-categories" placeholder="例如：拉面、奶茶" />
+                <datalist id="known-categories">{[...new Set(restaurants.map((r) => r.category))].map((c) => <option key={c} value={c} />)}</datalist>
               </label>
               <label>价位（可不填）<input name="price_range" maxLength={30} placeholder="$10-20" /></label>
             </div>
+            <label>图标（可不填，一个 emoji）<input name="emoji" maxLength={8} placeholder="🍜" /></label>
           </>
         )}
 

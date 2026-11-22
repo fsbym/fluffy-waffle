@@ -72,7 +72,7 @@ We believe **the most reliable information comes from open rules, public evidenc
 ## 第一次设置
 
 1. 在 [supabase.com](https://supabase.com) 免费新建项目
-2. **SQL Editor**：依次运行 `supabase/schema.sql`、`supabase/seed.sql`（会自动创建 `evidence` 存储桶）
+2. **SQL Editor**：运行 `supabase/schema.sql`（会自动创建 `evidence` 存储桶）。不需要导入任何初始数据，店家和优惠都由用户提交
 3. **Authentication → URL Configuration**：把 Site URL 设为你的网址（本地开发是 `http://localhost:3000`），登录邮件里的链接会跳回这里
 4. （可选）在 [console.anthropic.com](https://console.anthropic.com) 创建 API key，开启照片的 AI 检查
 5. 复制 `.env.example` 为 `.env.local` 并填好
@@ -89,7 +89,6 @@ npm run dev
 
 部署到 Vercel 时，把 `.env.example` 里的变量填进项目的 Environment Variables，并把 Supabase 的 Site URL 改成正式网址。
 
-> 初始数据里的折扣和饭团券是示例，上线后请同学们用提案改成真实信息。
 
 ## 许可证 · License
 
