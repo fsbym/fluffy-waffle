@@ -14,8 +14,7 @@ with r as (
     ('Rol San',            '中餐', '388 Spadina Ave, Toronto, ON',  '$15-25', 43.655441, -79.399342, 4.2, '🥢', '#d8e2bd', '#98ad6d'),
     ('Sneaky Dee''s',      '西式', '431 College St, Toronto, ON',   '$14-24', 43.656246, -79.407432, 4.1, '🌮', '#c9dcae', '#7e9c62'),
     ('Seven Lives Tacos',  '西式', 'Kensington Ave, Toronto, ON',   '$8-18',  43.654547, -79.400772, 4.7, '🌯', '#f1d1b1', '#de7a44'),
-    ('Future Bistro',      '甜点', '483 Bloor St W, Toronto, ON',   '$8-18',  43.665750, -79.407622, 4.0, '🍰', '#dec68f', '#c89c54'),
-    ('Pancho''s Bakery',   '甜点', '214 Augusta Ave, Toronto, ON',  '$4-12',  43.654730, -79.402350, 4.6, '🥐', '#d8e2bd', '#98ad6d')
+    ('Future Bistro',      '甜点', '483 Bloor St W, Toronto, ON',   '$8-18',  43.665750, -79.407622, 4.0, '🍰', '#dec68f', '#c89c54')
   ) as v(name, category, address, price_range, lat, lng, rating, emoji, color, accent)
   returning id, name
 )
@@ -30,6 +29,5 @@ from r join (values
   ('Rol San',             'discount', '工作日早茶 9 折（示例）',        '店家'),
   ('Sneaky Dee''s',       'discount', '学生周二特价（示例）',           '店家'),
   ('Seven Lives Tacos',   'coupon',   '饭团券可用（示例）',             '饭团'),
-  ('Future Bistro',       'discount', '蛋糕第二件半价（示例）',         '店家'),
-  ('Pancho''s Bakery',    'discount', '买 6 个 churros 送 1 个（示例）','店家')
+  ('Future Bistro',       'discount', '蛋糕第二件半价（示例）',         '店家')
 ) as d(name, kind, title, source) on d.name = r.name;
