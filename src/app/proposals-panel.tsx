@@ -47,7 +47,7 @@ export default function ProposalsPanel({ onClose, onChanged, onNeedLogin }: Prop
   return (
     <Modal title="大家提交的变更" onClose={onClose} wide>
       <div className="stack">
-        <p className="hint">取消优惠需要 {THRESHOLDS.remove_deal} 位同学、修改优惠和新增店家需要 {THRESHOLDS.update_deal} 位同学附照片确认（且确认多于反对）才会生效；同样人数反对则驳回；14 天没结果自动过期。新增优惠提交即生效。所有记录都写进公开账本。</p>
+        <p className="hint">新增、修改优惠和新增店家附照片提交即生效；取消一条优惠需要 {THRESHOLDS.remove_deal} 位同学附照片确认（且确认多于反对），{THRESHOLDS.remove_deal} 人反对则驳回，14 天没结果自动过期。所有记录都写进公开账本。</p>
         <div className="tabs">
           <button type="button" className={scope === "pending" ? "on" : ""} onClick={() => { setItems(null); setScope("pending"); }}>待确认</button>
           <button type="button" className={scope === "recent" ? "on" : ""} onClick={() => { setItems(null); setScope("recent"); }}>最近结果</button>

@@ -3,7 +3,8 @@
 --
 -- 设计：
 -- * 同学提交「提案」（新增店家 / 新增优惠 / 修改优惠 / 取消优惠），每票都要附照片证据。
--- * 3 个不同的人确认（且确认多于反对）后，提案自动生效；3 人反对则驳回；14 天没结果自动过期。
+-- * 新增店家、新增或修改优惠附照片提交即生效；取消优惠需要 2 个不同的人确认（且确认多于反对），
+--   2 人反对则驳回；14 天没结果自动过期。门槛见 proposal_threshold。
 -- * restaurants / deals / proposals / votes 的每一次变化都由触发器写进 ledger（账本）：
 --   只能追加、不能修改，每条记录带上一条的哈希，任何人都能下载下来验证历史没被偷偷改过。
 -- * 所有表都开启 RLS 且不设公开策略：浏览器无法直接读写，只能经过 Next.js 后端（secret key）。
@@ -202,9 +203,8 @@ end $$;
 create or replace function public.proposal_threshold(p_kind text) returns int
 language sql immutable as $$
   select case p_kind
-    when 'add_deal' then 1      -- 新增优惠：附照片提交即生效
     when 'remove_deal' then 2   -- 取消优惠：2 人确认
-    else 3                      -- 修改优惠、新增店家：3 人确认
+    else 1                      -- 新增优惠、修改优惠、新增店家：附照片提交即生效
   end
 $$;
 
