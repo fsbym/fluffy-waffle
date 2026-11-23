@@ -18,7 +18,11 @@ export type ProposalInput = {
 };
 
 async function getRestaurant(id: number) {
-  const { data, error } = await db().from("restaurants").select("id, name").eq("id", id).maybeSingle<Pick<Restaurant, "id" | "name">>();
+  const { data, error } = await db()
+    .from("restaurants")
+    .select("id, name, category, address, price_range, emoji, is_active")
+    .eq("id", id)
+    .maybeSingle<Pick<Restaurant, "id" | "name" | "category" | "address" | "price_range" | "emoji" | "is_active">>();
   if (error) throw error;
   if (!data) throw new BadRequest("找不到这家店");
   return data;
@@ -72,6 +76,41 @@ export async function parseProposal(body: Body): Promise<ProposalInput> {
           dish_name, dish_price: dish_price === null ? null : String(dish_price), dish_note,
         },
         claim: `新店家：${name}（${category}，${address}）${dish_name ? `，推荐「${dish_name}」税前 ${formatPrice(dish_price!)}` : ""}`,
+      };
+    }
+    case "update_restaurant": {
+      const r = await getRestaurant(int(body, "restaurant_id", { min: 1 }) ?? 0);
+      const name = text(body, "name", { max: 80, required: true, label: "店名" })!;
+      const address = text(body, "address", { max: 160, required: true, label: "地址" })!;
+      const category = text(body, "category", { max: 20, required: true, label: "分类" })!;
+      const price_range = text(body, "price_range", { max: 30, label: "人均" });
+      const emoji = text(body, "emoji", { max: 8, label: "图标" }) ?? r.emoji;
+      const changes = [
+        name !== r.name ? `店名改为「${name}」` : null,
+        address !== r.address ? `地址改为 ${address}` : null,
+        category !== r.category ? `分类改为「${category}」` : null,
+        price_range !== r.price_range ? `人均改为 ${price_range ?? "（空）"}` : null,
+        emoji !== r.emoji ? `图标改为 ${emoji}` : null,
+      ].filter(Boolean);
+      if (changes.length === 0) throw new BadRequest("内容和现在一样，没有变化");
+      const payload: Record<string, string | null> = { name, address, category, price_range, emoji };
+      if (address !== r.address) {
+        const { lat, lng } = await geocodeAddress(name, address);
+        payload.lat = String(lat);
+        payload.lng = String(lng);
+      }
+      return {
+        kind: "update_restaurant", restaurant_id: r.id, deal_id: null, dish_id: null, payload,
+        claim: `修改店家「${r.name}」：${changes.join("，")}`,
+      };
+    }
+    case "remove_restaurant": {
+      const r = await getRestaurant(int(body, "restaurant_id", { min: 1 }) ?? 0);
+      if (!r.is_active) throw new BadRequest("这家店已经下架了");
+      const reason = text(body, "reason", { max: 80, label: "原因" });
+      return {
+        kind: "remove_restaurant", restaurant_id: r.id, deal_id: null, dish_id: null, payload: { reason },
+        claim: `${r.name} ${reason ? `：${reason}` : "已经关门了"}`,
       };
     }
     case "add_deal": {
@@ -154,14 +193,14 @@ export async function getProposalClaim(id: number): Promise<{ claim: string; sta
   return { claim: data.claim, status: data.status, expired: new Date(data.expires_at) < new Date() };
 }
 
-type VoteRow = { id: number; user_id: string; stance: Stance; ai_verdict: Vote["ai_verdict"]; ai_reason: string | null; created_at: string };
+type VoteRow = { id: number; user_id: string; stance: Stance; evidence_path: string | null; ai_verdict: Vote["ai_verdict"]; ai_reason: string | null; created_at: string };
 type ProposalRow = Omit<Proposal, "votes" | "confirms" | "rejects"> & { created_by: string; votes: VoteRow[] };
 
 /** 公开列表：投票人用「提案人 / 同学 B / 同学 C…」匿名展示，不暴露账号。 */
 export async function listProposals(scope: "pending" | "recent"): Promise<Proposal[]> {
   let query = db()
     .from("proposals")
-    .select("id, kind, restaurant_id, deal_id, dish_id, claim, status, created_at, expires_at, created_by, votes(id, user_id, stance, ai_verdict, ai_reason, created_at)")
+    .select("id, kind, restaurant_id, deal_id, dish_id, claim, status, created_at, expires_at, created_by, votes(id, user_id, stance, evidence_path, ai_verdict, ai_reason, created_at)")
     .order("created_at", { ascending: false })
     .limit(100);
   query = scope === "pending"
@@ -178,7 +217,8 @@ export async function listProposals(scope: "pending" | "recent"): Promise<Propos
       ...p,
       confirms: votes.filter((v) => v.stance === "confirm").length,
       rejects: votes.filter((v) => v.stance === "reject").length,
-      votes: sorted.map(({ user_id, ...v }) => ({ ...v, voter: aliases.get(user_id)! })),
+      // 不把照片在存储里的路径暴露给前端，只告诉它有没有照片
+      votes: sorted.map(({ user_id, evidence_path, ...v }) => ({ ...v, has_photo: Boolean(evidence_path), voter: aliases.get(user_id)! })),
     };
   });
 }

@@ -21,7 +21,7 @@ async function shrink(file: File): Promise<Blob> {
   }
 }
 
-export default function PhotoInput({ onChange, label = "照片证据", hint = "必填：店内告示、菜单、收据或 App 截图" }: { onChange: (photo: Blob | null) => void; label?: string; hint?: string }) {
+export default function PhotoInput({ onChange, label = "照片证据", hint = "必填：店内告示、菜单、收据或 App 截图", optional = false }: { onChange: (photo: Blob | null) => void; label?: string; hint?: string; optional?: boolean }) {
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -35,7 +35,7 @@ export default function PhotoInput({ onChange, label = "照片证据", hint = "�
         <input
           type="file"
           accept="image/*"
-          required
+          required={!optional}
           onChange={async (event) => {
             const file = event.target.files?.[0];
             if (!file) { setPreview(null); onChange(null); return; }

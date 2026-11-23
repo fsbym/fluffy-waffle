@@ -101,6 +101,12 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
               <a className="dbtn" href={osmLink(r)} target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
               <button type="button" className="dbtn" onClick={() => void share()}>{copied ? "已复制链接" : "分享"}</button>
             </div>
+            <div className="fix">
+              信息有误？
+              <button type="button" onClick={() => onPropose("update_restaurant")}>改店家信息</button>
+              <span>·</span>
+              <button type="button" onClick={() => onPropose("remove_restaurant")}>这家店关了</button>
+            </div>
           </div>
         </section>
 
@@ -168,6 +174,8 @@ export default function RestaurantDetail({ restaurant: r, reloadKey, onClose, on
         .dbtn { display: inline-flex; align-items: center; height: 34px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink-2); font-size: 13px; text-decoration: none; cursor: pointer; }
         .dbtn.primary { border-color: var(--brand); background: var(--brand); color: #fff; font-weight: 700; }
         .dbtn.small { height: 30px; padding: 0 11px; font-size: 12px; }
+        .fix { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; color: var(--muted); font-size: 12px; }
+        .fix button { padding: 0; border: 0; background: none; color: var(--brand-text); font-size: 12px; text-decoration: underline; cursor: pointer; }
         .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         h3 { margin: 0; font-size: 15px; }
         .count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--ink); font-weight: 700; font-size: 12px; text-align: center; }

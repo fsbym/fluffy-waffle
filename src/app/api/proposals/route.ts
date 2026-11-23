@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { checkEvidence, deletePhoto, readPhoto, storePhoto } from "@/lib/evidence";
 import { listProposals, parseProposal, rpcErrorResponse } from "@/lib/proposals";
 import { db } from "@/lib/supabase";
+import { PHOTO_OPTIONAL } from "@/lib/types";
 import { currentUser, loginRequired } from "@/lib/user-auth";
 import { errorResponse } from "@/lib/validate";
 
@@ -24,12 +25,16 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const fields = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string"));
     const input = await parseProposal(fields);
-    const photo = await readPhoto(form.get("photo"));
+    // 修改类提案（改错字等）可以不附照片；新增和删除必须附照片
+    const rawPhoto = form.get("photo");
+    const hasPhoto = rawPhoto instanceof File && rawPhoto.size > 0;
+    if (!hasPhoto && !PHOTO_OPTIONAL.has(input.kind)) await readPhoto(null); // 抛出「请附上一张照片」
+    const photo = hasPhoto ? await readPhoto(rawPhoto) : null;
 
-    const check = await checkEvidence(photo, input.claim, "confirm");
+    const check = photo ? await checkEvidence(photo, input.claim, "confirm") : ({ ok: true, verdict: "unchecked", reason: "" } as const);
     if (!check.ok) return Response.json({ error: check.reason }, { status: 422 });
 
-    const path = await storePhoto(photo);
+    const path = photo ? await storePhoto(photo) : null;
     const { data, error } = await db().rpc("create_proposal", {
       p_kind: input.kind,
       p_restaurant_id: input.restaurant_id,
@@ -39,12 +44,12 @@ export async function POST(request: Request) {
       p_claim: input.claim,
       p_user: user.id,
       p_evidence_path: path,
-      p_evidence_sha256: photo.sha256,
+      p_evidence_sha256: photo?.sha256 ?? null,
       p_ai_verdict: check.verdict,
       p_ai_reason: check.reason,
     });
     if (error) {
-      await deletePhoto(path);
+      if (path) await deletePhoto(path);
       return rpcErrorResponse(error) ?? errorResponse(error);
     }
     return Response.json({ ...data, ai_reason: check.reason }, { status: 201 });

@@ -251,11 +251,12 @@ function RestaurantCard({ restaurant: r, run, categories }: { restaurant: Restau
       ) : (
         <div className="rhead">
           <div>
-            <h3>{r.emoji} {r.name}</h3>
+            <h3>{r.emoji} {r.name} {!r.is_active && <span className="pill off">已关闭</span>}</h3>
             <span className="meta">{[r.category, r.address, r.price_range].filter(Boolean).join(" · ")}</span>
           </div>
           <div className="actions">
             <button type="button" onClick={() => setEditing(true)}>编辑店家</button>
+            <button type="button" onClick={() => void run(() => api(`/api/admin/restaurants/${r.id}`, { method: "PATCH", json: { is_active: !r.is_active } }))}>{r.is_active ? "隐藏" : "重新显示"}</button>
             <button
               type="button"
               className="danger"

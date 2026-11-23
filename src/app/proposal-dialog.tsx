@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { formatPrice, THRESHOLDS, type ProposalKind, type Restaurant } from "@/lib/types";
+import { formatPrice, PHOTO_OPTIONAL, THRESHOLDS, type ProposalKind, type Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
 import Modal from "./modal";
 import PhotoInput from "./photo-input";
@@ -18,7 +18,14 @@ type Props = {
 };
 
 const GROUPS: { label: string; actions: { kind: ProposalKind; label: string }[] }[] = [
-  { label: "店家", actions: [{ kind: "add_restaurant", label: "新店家" }] },
+  {
+    label: "店家",
+    actions: [
+      { kind: "add_restaurant", label: "新店家" },
+      { kind: "update_restaurant", label: "改店家信息" },
+      { kind: "remove_restaurant", label: "这家店关了" },
+    ],
+  },
   {
     label: "推荐菜",
     actions: [
@@ -39,6 +46,8 @@ const GROUPS: { label: string; actions: { kind: ProposalKind; label: string }[] 
 
 const TITLES: Record<ProposalKind, string> = {
   add_restaurant: "添加一家店",
+  update_restaurant: "修改店家信息",
+  remove_restaurant: "这家店关了 / 信息有误",
   add_dish: "推荐一道菜",
   update_dish: "更新推荐菜",
   remove_dish: "这道菜没了",
@@ -67,16 +76,17 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind,
   const needsDish = kind === "update_dish" || kind === "remove_dish";
   const missingTarget = (needsDeal && deals.length === 0) || (needsDish && dishes.length === 0);
   const isDishPhoto = kind === "add_dish" || kind === "update_dish" || kind === "remove_dish" || kind === "add_restaurant";
+  const photoOptional = PHOTO_OPTIONAL.has(kind);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!photo) { setError("请附上一张照片"); return; }
+    if (!photo && !photoOptional) { setError("请附上一张照片"); return; }
     const form = new FormData(event.currentTarget);
     form.set("kind", kind);
-    if (kind === "add_deal" || kind === "add_dish") form.set("restaurant_id", String(rid));
+    if (kind === "add_deal" || kind === "add_dish" || kind === "update_restaurant" || kind === "remove_restaurant") form.set("restaurant_id", String(rid));
     if (needsDeal && deal) form.set("deal_id", String(deal.id));
     if (needsDish && dish) form.set("dish_id", String(dish.id));
-    form.set("photo", photo, "evidence.jpg");
+    if (photo) form.set("photo", photo, "evidence.jpg");
     setBusy(true);
     setError(null);
     try {
@@ -112,9 +122,11 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind,
     <Modal title={TITLES[kind]} onClose={onClose}>
       <form onSubmit={submit}>
         <p className="hint">
-          {THRESHOLDS[kind] === 1
-            ? "附上照片提交后立即生效。"
-            : `你提交后，再有 ${THRESHOLDS[kind] - 1} 位同学附照片确认就会生效。`}
+          {photoOptional
+            ? "提交后立即生效，写错了随时可以再改。照片可以不附；改价格的话，附张菜单或收据更有说服力。"
+            : THRESHOLDS[kind] === 1
+              ? "附上照片提交后立即生效。"
+              : `你提交后，再有 ${THRESHOLDS[kind] - 1} 位同学附照片确认就会生效。`}
           照片会公开给大家查看。
         </p>
 
@@ -192,6 +204,25 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind,
           </>
         )}
 
+        {kind === "update_restaurant" && restaurant && (
+          <>
+            <label>店名<input name="name" required maxLength={80} key={`rn-${rid}`} defaultValue={restaurant.name} /></label>
+            <label>地址（改了会重新在地图上定位）<input name="address" required maxLength={160} key={`ra-${rid}`} defaultValue={restaurant.address} /></label>
+            <div className="row">
+              <label>分类
+                <input name="category" required maxLength={20} list="known-categories" key={`rc-${rid}`} defaultValue={restaurant.category} />
+                <datalist id="known-categories">{[...new Set(restaurants.map((r) => r.category))].map((c) => <option key={c} value={c} />)}</datalist>
+              </label>
+              <label>人均（可不填）<input name="price_range" maxLength={30} key={`rp-${rid}`} defaultValue={restaurant.price_range ?? ""} /></label>
+            </div>
+            <label>图标（一个 emoji）<input name="emoji" maxLength={8} key={`re-${rid}`} defaultValue={restaurant.emoji} /></label>
+          </>
+        )}
+
+        {kind === "remove_restaurant" && (
+          <label>原因（可不填）<input name="reason" maxLength={80} placeholder="例如：已经关门 / 搬走了 / 重复的店" /></label>
+        )}
+
         {(kind === "add_dish" || (kind === "update_dish" && dish)) && (
           <>
             <div className="row">
@@ -228,7 +259,14 @@ export default function ProposalDialog({ restaurants, restaurantId, initialKind,
 
         <PhotoInput
           onChange={setPhoto}
-          hint={isDishPhoto ? "必填：菜的照片、菜单或收据" : "必填：店内告示、菜单、收据或 App 截图"}
+          optional={photoOptional}
+          hint={
+            photoOptional
+              ? "可不填"
+              : kind === "remove_restaurant"
+                ? "必填：例如关门告示、空店面"
+                : isDishPhoto ? "必填：菜的照片、菜单或收据" : "必填：店内告示、菜单、收据或 App 截图"
+          }
         />
 
         {error && <p className="error" role="alert">{error}</p>}

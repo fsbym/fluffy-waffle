@@ -9,7 +9,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/evidence/[i
     if (!Number.isInteger(id) || id < 1) return new Response("Not found", { status: 404 });
     const { data, error } = await db().from("votes").select("evidence_path").eq("id", id).maybeSingle();
     if (error) throw error;
-    const url = data && (await signedPhotoUrl(data.evidence_path));
+    const url = data?.evidence_path ? await signedPhotoUrl(data.evidence_path) : null;
     if (!url) return new Response("Not found", { status: 404 });
     return Response.redirect(url, 302);
   } catch (error) {

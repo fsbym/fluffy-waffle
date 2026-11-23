@@ -3,8 +3,9 @@
 -- 不预置任何店家或优惠：所有数据都由用户提交。
 --
 -- 设计：
--- * 同学提交「提案」（新增店家 / 新增优惠 / 修改优惠 / 取消优惠），每票都要附照片证据。
--- * 新增店家、新增或修改优惠附照片提交即生效；取消优惠需要 2 个不同的人确认（且确认多于反对），
+-- * 同学提交「提案」：新增 / 修改 / 删除店家、推荐菜、优惠。
+-- * 新增提交即生效（必须附照片）；修改提交即生效（照片可选，方便改错字）；
+--   删除（店家关门、菜没了、优惠取消）需要 2 个不同的人附照片确认（且确认多于反对），
 --   2 人反对则驳回；14 天没结果自动过期。门槛见 proposal_threshold。
 -- * restaurants / deals / proposals / votes 的每一次变化都由触发器写进 ledger（账本）：
 --   只能追加、不能修改，每条记录带上一条的哈希，任何人都能下载下来验证历史没被偷偷改过。
@@ -45,6 +46,8 @@ create index if not exists deals_restaurant_id_idx on public.deals (restaurant_i
 -- 店家坐标（WGS84），用于地图和计算步行时间
 alter table public.restaurants add column if not exists lat double precision check (lat is null or lat between -90 and 90);
 alter table public.restaurants add column if not exists lng double precision check (lng is null or lng between -180 and 180);
+-- 店家关门了 / 信息有误：标记为不再显示，但保留历史
+alter table public.restaurants add column if not exists is_active boolean not null default true;
 
 -- 从校园中心（King's College Circle）步行大约要几分钟：直线距离 × 1.3（绕路）÷ 80 米/分钟
 create or replace function public.walk_minutes_from_campus(p_lat double precision, p_lng double precision) returns int
@@ -90,11 +93,13 @@ create table if not exists public.proposals (
 alter table public.proposals add column if not exists dish_id bigint references public.dishes(id) on delete cascade;
 alter table public.proposals drop constraint if exists proposals_kind_check;
 alter table public.proposals add constraint proposals_kind_check check (kind in (
-  'add_restaurant', 'add_deal', 'update_deal', 'remove_deal', 'add_dish', 'update_dish', 'remove_dish'
+  'add_restaurant', 'update_restaurant', 'remove_restaurant',
+  'add_deal', 'update_deal', 'remove_deal', 'add_dish', 'update_dish', 'remove_dish'
 ));
 alter table public.proposals drop constraint if exists proposals_target_check;
 alter table public.proposals add constraint proposals_target_check check (
   (kind = 'add_restaurant' and restaurant_id is null and deal_id is null and dish_id is null) or
+  (kind in ('update_restaurant', 'remove_restaurant') and restaurant_id is not null and deal_id is null and dish_id is null) or
   (kind in ('add_deal', 'add_dish') and restaurant_id is not null and deal_id is null and dish_id is null) or
   (kind in ('update_deal', 'remove_deal') and deal_id is not null and dish_id is null) or
   (kind in ('update_dish', 'remove_dish') and dish_id is not null and deal_id is null)
@@ -108,8 +113,8 @@ create table if not exists public.votes (
   proposal_id     bigint not null references public.proposals(id) on delete cascade,
   user_id         uuid not null,
   stance          text not null check (stance in ('confirm', 'reject')),
-  evidence_path   text not null,             -- Supabase Storage 中 evidence 桶里的路径
-  evidence_sha256 text not null,
+  evidence_path   text,                      -- Supabase Storage 中 evidence 桶里的路径；修改类提案可以不附照片
+  evidence_sha256 text,
   ai_verdict      text not null,             -- supports / contradicts / unclear / unchecked
   ai_reason       text,
   created_at      timestamptz not null default now(),
@@ -117,6 +122,8 @@ create table if not exists public.votes (
   constraint votes_unique_evidence unique (proposal_id, evidence_sha256)
 );
 create index if not exists votes_user_idx on public.votes (user_id, created_at desc);
+alter table public.votes alter column evidence_path drop not null;
+alter table public.votes alter column evidence_sha256 drop not null;
 
 create table if not exists public.ledger (
   seq        bigint generated always as identity primary key,
@@ -233,6 +240,22 @@ begin
     where id = p.dish_id;
   when 'remove_dish' then
     update public.dishes set is_active = false, last_verified_on = current_date where id = p.dish_id;
+  when 'update_restaurant' then
+    update public.restaurants set
+      name = coalesce(nullif(p.payload->>'name', ''), name),
+      category = coalesce(nullif(p.payload->>'category', ''), category),
+      address = coalesce(nullif(p.payload->>'address', ''), address),
+      price_range = case when p.payload ? 'price_range' then nullif(p.payload->>'price_range', '') else price_range end,
+      emoji = coalesce(nullif(p.payload->>'emoji', ''), emoji),
+      lat = coalesce((p.payload->>'lat')::double precision, lat),
+      lng = coalesce((p.payload->>'lng')::double precision, lng),
+      walk_minutes = case when p.payload ? 'lat'
+        then public.walk_minutes_from_campus((p.payload->>'lat')::double precision, (p.payload->>'lng')::double precision)
+        else walk_minutes end,
+      is_active = true
+    where id = p.restaurant_id;
+  when 'remove_restaurant' then
+    update public.restaurants set is_active = false where id = p.restaurant_id;
   when 'add_deal' then
     insert into public.deals (restaurant_id, kind, title, source, ends_on)
     values (p.restaurant_id, p.payload->>'deal_kind', p.payload->>'title',
@@ -257,7 +280,8 @@ language sql immutable as $$
   select case p_kind
     when 'remove_deal' then 2   -- 取消优惠：2 人确认
     when 'remove_dish' then 2   -- 下架推荐菜：2 人确认
-    else 1                      -- 新增店家、新增/修改优惠、推荐/修改菜：附照片提交即生效
+    when 'remove_restaurant' then 2 -- 店家关门 / 删除：2 人确认
+    else 1                      -- 新增 / 修改店家、优惠、推荐菜：提交即生效
   end
 $$;
 
@@ -309,6 +333,11 @@ begin
       update public.proposals set status = 'expired', resolved_at = now()
       where dish_id = p.dish_id and status = 'pending' and id <> p.id;
     end if;
+    if p.kind in ('update_restaurant', 'remove_restaurant') then
+      update public.proposals set status = 'expired', resolved_at = now()
+      where restaurant_id = p.restaurant_id and kind in ('update_restaurant', 'remove_restaurant')
+        and status = 'pending' and id <> p.id;
+    end if;
   elsif v_reject >= v_threshold and v_reject >= v_confirm then
     update public.proposals set status = 'rejected', resolved_at = now() where id = p.id;
   end if;
@@ -345,6 +374,12 @@ begin
   end if;
   if p_dish_id is not null and exists (
     select 1 from public.proposals where dish_id = p_dish_id and status = 'pending' and expires_at > now()
+  ) then
+    raise exception 'duplicate_pending';
+  end if;
+  if p_kind in ('update_restaurant', 'remove_restaurant') and exists (
+    select 1 from public.proposals where restaurant_id = p_restaurant_id and kind in ('update_restaurant', 'remove_restaurant')
+      and status = 'pending' and expires_at > now()
   ) then
     raise exception 'duplicate_pending';
   end if;
