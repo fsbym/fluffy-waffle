@@ -36,11 +36,11 @@ export default function AccountDialog({ onClose }: { onClose: () => void }) {
         <p className="hint">已登录：<b>{email}</b></p>
         <form onSubmit={submit}>
           <p className="hint">
-            {recovering ? "请设置一个新密码。" : `设置或修改密码。设置后，也可以用「邮箱 + 密码」登录（学校邮箱的登录链接失效时很有用）。密码至少 ${PASSWORD_MIN_LENGTH} 位。`}
+            {recovering ? "请设置一个新密码。" : `修改密码。密码至少 ${PASSWORD_MIN_LENGTH} 位。`}
           </p>
           <label>新密码<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={PASSWORD_MIN_LENGTH} autoComplete="new-password" autoFocus={recovering} /></label>
           <label>再输一次<input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required minLength={PASSWORD_MIN_LENGTH} autoComplete="new-password" /></label>
-          {done && <p className="success">密码已保存，下次可以用邮箱 + 密码登录。</p>}
+          {done && <p className="success">密码已保存。</p>}
           {error && <p className="error" role="alert">{error}</p>}
           <div className="actions">
             <button type="button" onClick={() => { void signOut(); onClose(); }}>退出登录</button>
