@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatPrice, type Deal, type ProposalKind, type Restaurant } from "@/lib/types";
 import { useAuth } from "./auth";
+import AccountDialog from "./account-dialog";
 import LoginDialog from "./login-dialog";
 import ProposalDialog from "./proposal-dialog";
 import MapView from "./map-view";
@@ -34,12 +35,18 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [dealsOnly, setDealsOnly] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [dialog, setDialog] = useState<null | "login" | "propose" | "proposals">(null);
+  const [dialog, setDialog] = useState<null | "login" | "account" | "propose" | "proposals">(null);
   const [proposeFor, setProposeFor] = useState<{ restaurantId: number | null; kind?: ProposalKind; dealId?: number; dishId?: number }>({ restaurantId: null });
   const [detailId, setDetailId] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
-  const { email, signOut } = useAuth();
+  const { email, recovering } = useAuth();
+
+  // 从「忘记密码」邮件回来：直接打开设置新密码
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (recovering) setDialog("account");
+  }, [recovering]);
 
   const load = useCallback(async () => {
     setLoadState("loading");
@@ -141,7 +148,7 @@ export default function Home() {
           </button>
           <button className="submit-button header-submit" type="button" onClick={() => propose(selected?.id ?? null)}>＋ 推荐</button>
           {email ? (
-            <button className="ghost-button account" type="button" onClick={() => void signOut()} title={`已登录：${email}（点击退出）`}>退出</button>
+            <button className="ghost-button account" type="button" onClick={() => setDialog("account")} title={`已登录：${email}`}>账号</button>
           ) : (
             <button className="ghost-button" type="button" onClick={() => setDialog("login")}>登录</button>
           )}
@@ -241,6 +248,7 @@ export default function Home() {
         />
       )}
       {dialog === "login" && <LoginDialog onClose={() => setDialog(null)} />}
+      {dialog === "account" && email && <AccountDialog onClose={() => setDialog(null)} />}
       {dialog === "propose" && (
         <ProposalDialog
           restaurants={restaurants}
