@@ -22,7 +22,7 @@ function actorLabel(actor: string) {
 function describe(p: Parsed): string {
   const r = p.row;
   switch (p.table) {
-    case "restaurants": return `${r.name}（${r.address}）`;
+    case "restaurants": return `${r.name}（${r.address}）${r.is_active === false ? "（已关闭）" : ""}`;
     case "dishes": return `${r.name} $${Number(r.price).toFixed(2)}（税前）${r.is_active === false ? "（已下架）" : ""}`;
     case "deals": return `${r.title}${r.is_active === false ? "（已下架）" : ""}`;
     case "proposals": return `#${r.id} ${r.claim} → ${STATUS[String(r.status)] ?? r.status}`;

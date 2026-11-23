@@ -89,10 +89,14 @@ export function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: 
       <ul className="votes">
         {p.votes.map((v) => (
           <li key={v.id}>
-            <a href={`/api/evidence/${v.id}`} target="_blank" rel="noopener noreferrer" className="thumb" aria-label={`查看 ${v.voter} 的照片`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/api/evidence/${v.id}`} alt="" loading="lazy" />
-            </a>
+            {v.has_photo ? (
+              <a href={`/api/evidence/${v.id}`} target="_blank" rel="noopener noreferrer" className="thumb" aria-label={`查看 ${v.voter} 的照片`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/api/evidence/${v.id}`} alt="" loading="lazy" />
+              </a>
+            ) : (
+              <span className="thumb none" title="这次修改没有附照片">无照片</span>
+            )}
             <div>
               <b>{v.voter}</b> {v.stance === "confirm" ? "确认" : "反对"}
               {VERDICT[v.ai_verdict] && <span className="ai">{VERDICT[v.ai_verdict]}{v.ai_reason ? `：${v.ai_reason}` : ""}</span>}
@@ -122,6 +126,7 @@ export function ProposalCard({ proposal: p, onVoted, onNeedLogin }: { proposal: 
         .votes li { display: flex; gap: 10px; align-items: center; font-size: 13px; }
         .thumb { width: 52px; height: 52px; flex: 0 0 52px; overflow: hidden; border-radius: 8px; background: var(--surface-2); }
         .thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .thumb.none { display: grid; place-items: center; color: var(--muted); font-size: 11px; }
         .ai { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
         .vote-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
       `}</style>

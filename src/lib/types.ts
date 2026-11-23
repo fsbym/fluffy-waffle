@@ -36,11 +36,16 @@ export type Restaurant = {
   emoji: string;
   color: string;
   accent: string;
+  /** false = 已关门 / 信息有误，前台不显示 */
+  is_active: boolean;
   deals: Deal[];
   dishes: Dish[];
 };
 
-export type ProposalKind = "add_restaurant" | "add_deal" | "update_deal" | "remove_deal" | "add_dish" | "update_dish" | "remove_dish";
+export type ProposalKind =
+  | "add_restaurant" | "update_restaurant" | "remove_restaurant"
+  | "add_deal" | "update_deal" | "remove_deal"
+  | "add_dish" | "update_dish" | "remove_dish";
 export type ProposalStatus = "pending" | "applied" | "rejected" | "expired" | "cancelled";
 export type Stance = "confirm" | "reject";
 
@@ -48,6 +53,8 @@ export type Vote = {
   id: number;
   stance: Stance;
   voter: string; // 匿名代号，例如「同学 A」
+  /** 修改类提案可以不附照片 */
+  has_photo: boolean;
   ai_verdict: "supports" | "contradicts" | "unclear" | "unchecked";
   ai_reason: string | null;
   created_at: string;
@@ -88,7 +95,12 @@ export const THRESHOLDS: Record<ProposalKind, number> = {
   add_dish: 1, // 推荐菜：附照片提交即生效
   update_dish: 1, // 修改菜名 / 价格：附照片提交即生效
   remove_dish: 2, // 下架推荐菜：2 人确认
+  update_restaurant: 1, // 修改店家信息：提交即生效
+  remove_restaurant: 2, // 店家关门：2 人确认
 };
+
+/** 这些「修改」类提案可以不附照片（方便改错字）；新增和删除必须附照片 */
+export const PHOTO_OPTIONAL: ReadonlySet<ProposalKind> = new Set<ProposalKind>(["update_restaurant", "update_deal", "update_dish"]);
 
 /** 税前价格，例如 $12.99 */
 export function formatPrice(price: number): string {

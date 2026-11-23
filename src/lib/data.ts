@@ -3,7 +3,7 @@ import { db, torontoToday } from "./supabase";
 import type { Deal, Dish, Restaurant } from "./types";
 import { BadRequest, date, int, kind, num, text, bool } from "./validate";
 
-const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, lat, lng, emoji, color, accent";
+const RESTAURANT_COLUMNS = "id, name, category, address, price_range, walk_minutes, rating, lat, lng, emoji, color, accent, is_active";
 const DEAL_COLUMNS = "id, restaurant_id, kind, title, source, starts_on, ends_on, last_verified_on, is_active";
 const DISH_COLUMNS = "id, restaurant_id, name, price, note, last_verified_on, is_active";
 
@@ -30,7 +30,9 @@ async function fetchRestaurants(): Promise<Restaurant[]> {
 export async function listPublicRestaurants(): Promise<Restaurant[]> {
   const today = torontoToday();
   const restaurants = await fetchRestaurants();
-  return restaurants.map((r) => ({ ...r, deals: r.deals.filter((d) => isCurrent(d, today)), dishes: r.dishes.filter((d) => d.is_active) }));
+  return restaurants
+    .filter((r) => r.is_active)
+    .map((r) => ({ ...r, deals: r.deals.filter((d) => isCurrent(d, today)), dishes: r.dishes.filter((d) => d.is_active) }));
 }
 
 /** 后台：返回全部折扣，包括已停用和已过期的。 */
@@ -49,6 +51,7 @@ export function parseRestaurant(body: Body, partial: boolean) {
     rating: num(body, "rating", { min: 0, max: 5 }),
     lat: num(body, "lat", { min: -90, max: 90 }),
     lng: num(body, "lng", { min: -180, max: 180 }),
+    is_active: bool(body, "is_active"),
     emoji: text(body, "emoji", { max: 8 }),
     color: text(body, "color", { max: 9 }),
     accent: text(body, "accent", { max: 9 }),
