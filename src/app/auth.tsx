@@ -12,8 +12,6 @@ type Auth = {
   email: string | null;
   /** 刚通过「忘记密码」邮件进来，需要设置新密码 */
   recovering: boolean;
-  /** 发送登录链接 */
-  signIn: (email: string) => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   /** 用邮箱 + 密码注册。返回 needsConfirmation=true 表示需要先点确认邮件 */
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
@@ -31,7 +29,7 @@ const AuthContext = createContext<Auth | null>(null);
 function friendly(error: AuthError | Error): Error {
   const m = error.message;
   if (/invalid login credentials/i.test(m)) {
-    return new Error("邮箱或密码不对。如果你以前是用邮件链接登录的，还没设置过密码，请先用邮件链接登录，再在「账号」里设置密码。");
+    return new Error("邮箱或密码不对。如果你以前是用邮件链接登录的、还没设置过密码，请点下面的「忘记密码」设置一个。");
   }
   if (/email not confirmed/i.test(m)) return new Error("邮箱还没确认：请先点一下确认邮件里的链接，再用密码登录。");
   if (/already registered|already been registered/i.test(m)) return new Error("这个邮箱已经注册过了，请直接登录。");
@@ -69,11 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return supabase;
   }, [supabase]);
 
-  const signIn = useCallback(async (email: string) => {
-    const { error } = await client().auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
-    if (error) throw friendly(error);
-  }, [client]);
-
   const signInWithPassword = useCallback(async (email: string, password: string) => {
     const { error } = await client().auth.signInWithPassword({ email, password });
     if (error) throw friendly(error);
@@ -84,7 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw friendly(error);
     // 邮箱已存在时，Supabase 为了防止探测账号，不报错但返回空的 identities
     if (data.user && data.user.identities?.length === 0) {
-      throw new Error("这个邮箱已经注册过了，请直接用密码登录；如果以前是用邮件链接登录、还没设置过密码，请先用邮件链接登录，再在「账号」里设置密码。");
+      throw new Error("这个邮箱已经注册过了，请直接用密码登录；如果以前是用邮件链接登录、还没设置过密码，请点「忘记密码」设置一个。");
     }
     return { needsConfirmation: !data.session };
   }, [client]);
@@ -113,8 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Auth>(() => ({
     ready, configured: Boolean(supabase), email: session?.user.email ?? null, recovering,
-    signIn, signInWithPassword, signUp, sendPasswordReset, updatePassword, signOut, authFetch,
-  }), [ready, supabase, session, recovering, signIn, signInWithPassword, signUp, sendPasswordReset, updatePassword, signOut, authFetch]);
+    signInWithPassword, signUp, sendPasswordReset, updatePassword, signOut, authFetch,
+  }), [ready, supabase, session, recovering, signInWithPassword, signUp, sendPasswordReset, updatePassword, signOut, authFetch]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }
